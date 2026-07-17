@@ -125,10 +125,6 @@
             </header>
 
             <div class="p-5 space-y-6 pb-28">
-                <!-- 📢 রিয়েল-টাইম এডমিন স্ক্রলিং নোটিশ -->
-                <div id="global-scroll-container" class="hidden scrolling-text select-none">
-                    <span id="global-scroll-text">📌 খামারের সকল তথ্য এবং গাইডলাইন নিয়মিত এখানে আপডেট করা হবে।</span>
-                </div>
 
                 <div id="dashboard-summary" class="transform transition hover:scale-[1.02]"></div>
                 <div>
@@ -255,19 +251,6 @@
         window.app = app;
         window.db = db;
         window.auth = auth;
-
-        // রিয়েল-টাইম এডমিন স্ক্রলিং নোটিশ লিসেনার
-        db.ref("admin_scroll_text").on("value", snapshot => {
-            const text = snapshot.val();
-            const container = document.getElementById("global-scroll-container");
-            const el = document.getElementById("global-scroll-text");
-            if (text && text.trim() !== "" && text !== "📌 কোন বার্তা নেই।" && text !== "📌 কোন বার্তা নেই।") {
-                if (el) el.textContent = text;
-                if (container) container.classList.remove("hidden");
-            } else {
-                if (container) container.classList.add("hidden");
-            }
-        });
 
         let currentUser = null;
         let pageHistory = ['dashboard'];

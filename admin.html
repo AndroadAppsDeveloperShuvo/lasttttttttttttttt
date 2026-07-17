@@ -27,6 +27,24 @@
 </head>
 <body class="text-gray-800 pb-20">
 
+    <!-- 🔐 Password Gate Modal -->
+    <div id="admin-password-gate" class="fixed inset-0 bg-gray-950/95 z-[999] flex flex-col items-center justify-center p-4 backdrop-blur-md">
+        <div class="bg-white rounded-3xl p-6 shadow-2xl border border-gray-100 text-center space-y-4 w-full max-w-sm">
+            <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto">
+                <span class="material-symbols-outlined text-3xl text-red-500">lock</span>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold text-gray-800">এডমিন অ্যাক্সেস লকড</h2>
+                <p class="text-xs text-gray-500 mt-1">এই পেজে প্রবেশ করতে সিকিউরিটি পাসওয়ার্ড প্রয়োজন</p>
+            </div>
+            <div class="space-y-3">
+                <input type="password" id="admin-gate-pass" placeholder="পাসওয়ার্ড লিখুন" class="w-full p-3 text-center border border-gray-200 rounded-xl font-bold tracking-wider text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                <button onclick="checkAdminGatePassword()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl transition duration-200 shadow-md">প্রবেশ করুন</button>
+            </div>
+            <p id="gate-error-msg" class="text-red-500 font-bold text-xs hidden">❌ ভুল পাসওয়ার্ড! আবার চেষ্টা করুন।</p>
+        </div>
+    </div>
+
     <header class="bg-gradient-to-r from-teal-800 to-teal-600 text-white p-6 shadow-lg rounded-b-3xl mb-6 sticky top-0 z-20">
         <div class="max-w-3xl mx-auto flex justify-between items-center">
             <h1 class="text-2xl font-bold flex items-center gap-2">
@@ -39,21 +57,6 @@
 
     <main class="max-w-3xl mx-auto p-4 space-y-6">
         
-        <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 transition hover:shadow-md">
-            <h2 class="text-lg font-bold text-teal-700 mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined">campaign</span> স্ক্রলিং মেসেজ আপডেট
-            </h2>
-            
-            <div class="scrolling-wrapper bg-teal-50 text-teal-800 font-bold py-3 px-4 mb-4 border-l-4 border-teal-500 shadow-inner">
-                <span id="scrollText">📌 লোড হচ্ছে...</span>
-            </div>
-
-            <div class="flex gap-2">
-                <input type="text" id="scrollInput" placeholder="নতুন মেসেজ লিখুন..." class="flex-grow p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-500 font-medium text-sm">
-                <button id="updateScroll" class="bg-teal-600 hover:bg-teal-700 text-white px-6 py-4 rounded-2xl font-bold transition shadow-md active:scale-95">আপডেট</button>
-            </div>
-        </div>
-
         <!-- 💊 Vaccine & Medicine Guideline Manager -->
         <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 transition hover:shadow-md space-y-4">
             <div class="flex justify-between items-center border-b pb-3 border-gray-100">
@@ -101,6 +104,27 @@
                             <input type="text" id="schedDose" required placeholder="যেমন: ১ ফোঁটা চোখে" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-teal-500">
                         </div>
                     </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-500 block mb-1">মুরগির জাত (Breed)</label>
+                            <select id="schedBreed" required class="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-teal-500">
+                                <option value="Broiler">ব্রয়লার (Broiler)</option>
+                                <option value="ColorBird">কালার বার্ড / কক (Color Bird)</option>
+                                <option value="Sonali">সোনালি (Sonali)</option>
+                                <option value="Deshi">দেশি (Deshi)</option>
+                                <option value="All">সব জাতের জন্য (All)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-500 block mb-1">প্রয়োগের সময় (Time)</label>
+                            <select id="schedTime" required class="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-teal-500">
+                                <option value="সকাল">সকাল (Morning)</option>
+                                <option value="দুপুর">দুপুর (Noon)</option>
+                                <option value="রাত">রাত (Night)</option>
+                                <option value="সারাদিন">সারাদিন (All Day)</option>
+                            </select>
+                        </div>
+                    </div>
                     <div>
                         <label class="text-[10px] font-bold text-gray-500 block mb-1">বিবরণ / গাইডলাইন</label>
                         <textarea id="schedDesc" required placeholder="প্রয়োগের পদ্ধতি ও গুরুত্ব লিখুন..." rows="2" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-teal-500"></textarea>
@@ -120,7 +144,41 @@
 
     </main>
 
+    <!-- Reusable Beautiful Confirmation Modal -->
+    <div id="customConfirmModal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out]">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 transform transition scale-100 duration-150">
+            <div class="flex items-center gap-3 text-amber-600 mb-3" id="confirmIconContainer">
+                <span class="material-symbols-outlined text-3xl font-extrabold" id="confirmIcon">help</span>
+                <h3 class="text-base font-extrabold text-gray-800" id="confirmTitle">নিশ্চিতকরণ</h3>
+            </div>
+            <p class="text-xs font-semibold text-gray-500 mb-6 leading-relaxed" id="confirmMessage">আপনি কি এই কাজটি করতে চান?</p>
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeCustomConfirm()" class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold transition">বাতিল</button>
+                <button id="confirmYesBtn" class="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition shadow-md active:scale-95">হ্যাঁ, নিশ্চিত করুন</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // --- Password Gate Verification ---
+        function checkAdminGatePassword() {
+            const pass = document.getElementById("admin-gate-pass").value;
+            if (pass === "dev@shuvo") {
+                document.getElementById("admin-password-gate").classList.add("hidden");
+                localStorage.setItem("admin_authenticated_shuvo", "true");
+            } else {
+                const errorMsg = document.getElementById("gate-error-msg");
+                errorMsg.classList.remove("hidden");
+                document.getElementById("admin-gate-pass").value = "";
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (localStorage.getItem("admin_authenticated_shuvo") === "true") {
+                document.getElementById("admin-password-gate").classList.add("hidden");
+            }
+        });
+
         // --- Firebase Configuration ---
         const firebaseConfig = {
             apiKey: "AIzaSyBD3Ev8Gg2yValARgfxeRlSwDWrdERmtKE",
@@ -134,38 +192,19 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- 1. Scrolling Text ---
-        const scrollTextEl = document.getElementById("scrollText");
-        const scrollInput = document.getElementById("scrollInput");
-        const scrollRef = db.ref("admin_scroll_text");
-
-        scrollRef.on("value", snapshot => {
-            const text = snapshot.val() || "📌 কোন বার্তা নেই।";
-            scrollTextEl.textContent = text;
-            scrollInput.value = text;
-        });
-
-        document.getElementById("updateScroll").addEventListener("click", async () => {
-            const newText = scrollInput.value.trim();
-            if (newText) {
-                await scrollRef.set(newText);
-                alert("✅ Scrolling text আপডেট হয়েছে!");
-            }
-        });
-
         // --- 2. Medicine & Vaccine Guideline Manager ---
         const scheduleRef = db.ref("medicine_schedule");
         let allSchedules = {};
 
         // Default list to seed if empty
         const defaultSchedules = [
-            { day: 1, name: "স্যালাইন ও গ্লুকোজ পানি", category: "Saline", dose: "১ গ্রাম প্রতি লিটার", desc: "মুরগির ধকল বা ক্লান্তি দূর করার জন্য এবং শক্তি যোগাতে পানির সাথে প্রথম দিন দিতে হয়।" },
-            { day: 3, name: "ভিটামিন ও অ্যামিনো অ্যাসিড", category: "Vitamin", dose: "১ মিলি প্রতি ২ লিটার", desc: "৩য় থেকে ৫ম দিন পর্যন্ত মুরগির দৈহিক বৃদ্ধির জন্য ও রোগ প্রতিরোধ ক্ষমতা গড়ে তুলতে।" },
-            { day: 7, name: "রাণীক্ষেত ও ব্রঙ্কাইটিস (BCRD)", category: "Vaccine", dose: "১ ফোঁটা চোখে", desc: "৭ম দিনে রাণীক্ষেত ও সংক্রামক ব্রঙ্কাইটিস রোগের প্রাথমিক প্রতিরোধে অত্যন্ত গুরুত্বপূর্ণ ভ্যাকসিন।" },
-            { day: 12, name: "গাম্বোরো প্রথম ডোজ (Gumboro)", category: "Vaccine", dose: "১ ফোঁটা চোখে", desc: "১২তম দিনে অত্যন্ত সংক্রামক গাম্বোরো রোগের ভ্যাকসিন প্রয়োগ করতে হয়।" },
-            { day: 18, name: "গাম্বোরো বুস্টার ডোজ (Gumboro Booster)", category: "Vaccine", dose: "পানিতে মিশিয়ে", desc: "১৮তম দিনে প্রথম গাম্বোরো ভ্যাকসিনের কার্যকারিতা বাড়াতে বুস্টার ডোজ।" },
-            { day: 24, name: "রাণীক্ষেত বুস্টার ডোজ (BCRD Booster)", category: "Vaccine", dose: "পানিতে মিশিয়ে", desc: "২৪তম দিনে রাণীক্ষেত রোগের বুস্টার ডোজ দীর্ঘমেয়াদী সুরক্ষার জন্য প্রয়োগ করুন।" },
-            { day: 28, name: "কৃমিনাশক ঔষধ (Deworming)", category: "Deworming", dose: "১ গ্রাম প্রতি লিটার", desc: "২৮তম দিনে কৃমি দূর করতে পানিতে মিশিয়ে বা পোল্ট্রি ভেটেরিনারি পরামর্শ অনুযায়ী।" }
+            { day: 1, name: "চিনির পানি", category: "Saline", dose: "যত টুকু খেতে পারে", desc: "বি:দ্র: প্রথম ২ ঘণ্টা চিনির পানি খাওয়াতে হবে 😊 তারপরে সারাদিন সাদা পানি খাওয়াতে হবে 😊✅", breed: "Broiler", time: "সকাল" },
+            { day: 1, name: "২ ঘণ্টা পরে সারাদিন সাদা পানি", category: "Saline", dose: "যত টুকু খেতে পারে তত টুকু", desc: "প্রথম ২ ঘণ্টা চিনির পানি খাওয়া শেষে বাকি সারা দিন ফ্রেশ সাদা পানি সরবরাহ করুন।", breed: "Broiler", time: "সারাদিন" },
+            { day: 2, name: "এনফ্লোক্স ভেট", category: "Antibiotic", dose: "১ মিলি ২ লিটার পানিতে", desc: "মুরগির প্রথম অবস্থায় ব্যাকটেরিয়াজনিত আক্রমণ রোধ করতে সাহায্য করে।", breed: "Broiler", time: "সকাল" },
+            { day: 3, name: "ভিটামিন ও অ্যামিনো অ্যাসিড", category: "Vitamin", dose: "১ মিলি প্রতি ২ লিটার পানিতে", desc: "৩য় থেকে ৫ম দিন পর্যন্ত মুরগির দৈহিক বৃদ্ধির জন্য ও রোগ প্রতিরোধ ক্ষমতা গড়ে তুলতে পানির সাথে মিশিয়ে দিন।", breed: "Broiler", time: "সকাল" },
+            { day: 5, name: "বিসিআরডিভি টিকা (BCRDV - ১ম ডোজ)", category: "Vaccine", dose: "১ ফোঁটা চোখে", desc: "রাণীকক্ষেত রোগ প্রতিরোধে ৩ থেকে ৫ দিনের মাথায় প্রথম চোখের ফোঁটা দিতে হবে।", breed: "Broiler", time: "সকাল" },
+            { day: 12, name: "গাম্বোরো টিকা (Gumboro - ১ম ডোজ)", category: "Vaccine", dose: "১ ফোঁটা চোখে বা পানিতে", desc: "গাম্বোরো রোগ প্রতিরোধে ১০ থেকে ১২তম দিনে প্রথম ডোজ দিতে হবে।", breed: "Broiler", time: "সকাল" },
+            { day: 28, name: "কৃমিনাশক ঔষধ (Deworming)", category: "Deworming", dose: "১ গ্রাম প্রতি লিটার", desc: "২৮তম দিনে কৃমি দূর করতে পানিতে মিশিয়ে বা পোল্ট্রি ভেটেরিনারি পরামর্শ অনুযায়ী দিন।", breed: "Broiler", time: "সকাল" }
         ];
 
         // Categories Map for UI
@@ -177,6 +216,14 @@
             'Calcium': { icon: '🦴', label: 'ক্যালসিয়াম', color: 'text-orange-600 bg-orange-50' },
             'Deworming': { icon: '🐛', label: 'কৃমিনাশক', color: 'text-amber-600 bg-amber-50' },
             'Others': { icon: '📦', label: 'অন্যান্য', color: 'text-gray-600 bg-gray-50' }
+        };
+
+        const breedLabels = {
+            'Broiler': 'ব্রয়লার',
+            'ColorBird': 'কালার বার্ড',
+            'Sonali': 'সোনালি',
+            'Deshi': 'দেশি',
+            'All': 'সব জাত'
         };
 
         // Fetch Guideline Schedules from Admin Database
@@ -192,7 +239,7 @@
                     <div class="text-center py-6">
                         <p class="text-sm text-gray-500 mb-3">ডাটাবেজে কোনো গাইডলাইন পাওয়া যায়নি।</p>
                         <button onclick="autoSeedSchedules()" class="bg-teal-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow active:scale-95">
-                            ডিফল্ট ৭টি গাইডলাইন সেট করুন
+                            ডিফল্ট গাইডলাইন সেট করুন
                         </button>
                     </div>`;
                 return;
@@ -203,6 +250,9 @@
 
             sorted.forEach(([id, item]) => {
                 const cat = medCategories[item.category] || medCategories['Others'];
+                const breedText = breedLabels[item.breed || 'Broiler'] || 'ব্রয়লার';
+                const timeText = item.time || 'সকাল';
+                
                 const html = `
                     <div onclick="editSchedule('${id}')" class="bg-gray-50 hover:bg-gray-100/80 border border-gray-100 p-4 rounded-2xl flex items-center justify-between cursor-pointer transition">
                         <div class="flex items-center gap-3">
@@ -212,12 +262,14 @@
                             <div>
                                 <h4 class="font-bold text-xs text-gray-800 flex items-center gap-2">
                                     ${item.name} 
-                                    <span class="bg-teal-100 text-teal-800 text-[9px] font-bold px-1.5 py-0.5 rounded-full">${item.day}ম দিন</span>
+                                    <span class="bg-teal-700 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full">${item.day}ম দিন</span>
+                                    <span class="bg-amber-700 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full">${breedText}</span>
+                                    <span class="bg-blue-700 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full">${timeText}</span>
                                 </h4>
                                 <p class="text-[10px] text-gray-400 mt-0.5 truncate max-w-[200px] sm:max-w-md">${item.desc}</p>
                             </div>
                         </div>
-                        <div class="text-right">
+                        <div class="text-right flex flex-col justify-center items-end">
                             <span class="text-[10px] font-bold text-gray-500 block">${item.dose}</span>
                             <span class="text-[8px] text-gray-400">${cat.label}</span>
                         </div>
@@ -226,14 +278,53 @@
             });
         });
 
+        // Custom confirm logic
+        let confirmCallback = null;
+        function showCustomConfirm(title, message, isDangerous, onConfirm) {
+            document.getElementById("confirmTitle").innerText = title;
+            document.getElementById("confirmMessage").innerText = message;
+            
+            const icon = document.getElementById("confirmIcon");
+            const iconContainer = document.getElementById("confirmIconContainer");
+            const yesBtn = document.getElementById("confirmYesBtn");
+            
+            if (isDangerous) {
+                icon.innerText = "warning";
+                iconContainer.className = "flex items-center gap-3 text-red-600 mb-3";
+                yesBtn.className = "px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition shadow-md active:scale-95";
+            } else {
+                icon.innerText = "help";
+                iconContainer.className = "flex items-center gap-3 text-teal-600 mb-3";
+                yesBtn.className = "px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition shadow-md active:scale-95";
+            }
+            
+            confirmCallback = onConfirm;
+            document.getElementById("customConfirmModal").classList.remove("hidden");
+        }
+        
+        function closeCustomConfirm() {
+            document.getElementById("customConfirmModal").classList.add("hidden");
+            confirmCallback = null;
+        }
+        
+        document.getElementById("confirmYesBtn").addEventListener("click", () => {
+            if (confirmCallback) confirmCallback();
+            closeCustomConfirm();
+        });
+
         // Seed Default Guidelines
         async function autoSeedSchedules() {
-            if (confirm("আপনি কি ডিফল্ট পোল্ট্রি ভ্যাকসিন ও ঔষধের গাইডলাইনগুলো ডাটাবেজে সেট করতে চান?")) {
-                for (const item of defaultSchedules) {
-                    await scheduleRef.push(item);
+            showCustomConfirm(
+                "ডিফল্ট গাইডলাইন সেট করুন", 
+                "আপনি কি ডিফল্ট পোল্ট্রি ভ্যাকসিন ও ঔষধের গাইডলাইনগুলো ডাটাবেজে সেট করতে চান?", 
+                false, 
+                async () => {
+                    for (const item of defaultSchedules) {
+                        await scheduleRef.push(item);
+                    }
+                    alert("✅ ডিফল্ট গাইডলাইনগুলো সফলভাবে সেভ হয়েছে!");
                 }
-                alert("✅ ডিফল্ট গাইডলাইনগুলো সফলভাবে সেভ হয়েছে!");
-            }
+            );
         }
 
         // Form Helpers
@@ -245,21 +336,19 @@
             document.getElementById("scheduleFormContainer").classList.remove("hidden");
         }
 
-        function closeScheduleForm() {
-            document.getElementById("scheduleFormContainer").classList.add("hidden");
-        }
-
         // Edit Mode
         function editSchedule(id) {
             const item = allSchedules[id];
             if (!item) return;
 
             document.getElementById("scheduleId").value = id;
-            document.getElementById("schedName").value = item.name;
-            document.getElementById("schedDay").value = item.day;
-            document.getElementById("schedCategory").value = item.category;
-            document.getElementById("schedDose").value = item.dose;
-            document.getElementById("schedDesc").value = item.desc;
+            document.getElementById("schedName").value = item.name || '';
+            document.getElementById("schedDay").value = item.day || '';
+            document.getElementById("schedCategory").value = item.category || 'Vaccine';
+            document.getElementById("schedDose").value = item.dose || '';
+            document.getElementById("schedDesc").value = item.desc || '';
+            document.getElementById("schedBreed").value = item.breed || 'Broiler';
+            document.getElementById("schedTime").value = item.time || 'সকাল';
 
             document.getElementById("formTitle").innerText = "গাইডলাইন এডিট করুন";
             document.getElementById("btnDeleteSched").classList.remove("hidden");
@@ -275,7 +364,9 @@
                 day: parseInt(document.getElementById("schedDay").value),
                 category: document.getElementById("schedCategory").value,
                 dose: document.getElementById("schedDose").value.trim(),
-                desc: document.getElementById("schedDesc").value.trim()
+                desc: document.getElementById("schedDesc").value.trim(),
+                breed: document.getElementById("schedBreed").value,
+                time: document.getElementById("schedTime").value
             };
 
             if (id) {
@@ -285,16 +376,23 @@
                 await scheduleRef.push(data);
                 alert("✅ নতুন গাইডলাইনটি সফলভাবে যোগ হয়েছে!");
             }
-            closeScheduleForm();
+            document.getElementById("scheduleFormContainer").classList.add("hidden");
         }
 
         // Delete
         async function deleteSchedule() {
             const id = document.getElementById("scheduleId").value;
-            if (id && confirm("আপনি কি নিশ্চিত এই গাইডলাইনটি ডিলিট করতে চান?")) {
-                await scheduleRef.child(id).remove();
-                alert("🗑️ গাইডলাইনটি মুছে ফেলা হয়েছে!");
-                closeScheduleForm();
+            if (id) {
+                showCustomConfirm(
+                    "গাইডলাইন ডিলিট নিশ্চিতকরণ", 
+                    "আপনি কি নিশ্চিত এই গাইডলাইনটি ডিলিট করতে চান? এটি আর ফিরে পাওয়া যাবে না।", 
+                    true, 
+                    async () => {
+                        await scheduleRef.child(id).remove();
+                        alert("🗑️ গাইডলাইনটি মুছে ফেলা হয়েছে!");
+                        document.getElementById("scheduleFormContainer").classList.add("hidden");
+                    }
+                );
             }
         }
     </script>
