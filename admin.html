@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>স্মার্ট খামার - এডমিন প্যানেল</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <style>
+        body { font-family: 'Noto Sans Bengali', sans-serif; background-color: #f4f7f6; }
+        
+        /* Scrolling Text Animation */
+        .scrolling-wrapper { overflow: hidden; white-space: nowrap; border-radius: 0.75rem; }
+        .scrolling-wrapper span { display: inline-block; padding-left: 100%; animation: scroll-left 15s linear infinite; }
+        @keyframes scroll-left { 0% { transform: translateX(0%); } 100% { transform: translateX(-100%); } }
+        
+        /* Hide Scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="text-gray-800 pb-20">
+
+    <header class="bg-gradient-to-r from-teal-800 to-teal-600 text-white p-6 shadow-lg rounded-b-3xl mb-6 sticky top-0 z-20">
+        <div class="max-w-3xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined text-3xl">admin_panel_settings</span> 
+                এডমিন প্যানেল
+            </h1>
+            <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm">Shuvo All Tool</span>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto p-4 space-y-6">
+        
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 transition hover:shadow-md">
+            <h2 class="text-lg font-bold text-teal-700 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined">campaign</span> স্ক্রলিং মেসেজ আপডেট
+            </h2>
+            
+            <div class="scrolling-wrapper bg-teal-50 text-teal-800 font-bold py-3 px-4 mb-4 border-l-4 border-teal-500 shadow-inner">
+                <span id="scrollText">📌 লোড হচ্ছে...</span>
+            </div>
+
+            <div class="flex gap-2">
+                <input type="text" id="scrollInput" placeholder="নতুন মেসেজ লিখুন..." class="flex-grow p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-500 font-medium text-sm">
+                <button id="updateScroll" class="bg-teal-600 hover:bg-teal-700 text-white px-6 py-4 rounded-2xl font-bold transition shadow-md active:scale-95">আপডেট</button>
+            </div>
+        </div>
+
+        <!-- 💊 Vaccine & Medicine Guideline Manager -->
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 transition hover:shadow-md space-y-4">
+            <div class="flex justify-between items-center border-b pb-3 border-gray-100">
+                <h2 class="text-lg font-bold text-teal-700 flex items-center gap-2">
+                    <span class="material-symbols-outlined">vaccines</span> ঔষধ ও ভ্যাকসিন গাইডলাইন
+                </h2>
+                <button onclick="openScheduleForm()" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 active:scale-95 shadow-sm">
+                    <span class="material-symbols-outlined text-sm">add</span> নতুন অ্যাড করুন
+                </button>
+            </div>
+
+            <!-- Schedule Form (hidden by default) -->
+            <div id="scheduleFormContainer" class="hidden bg-gray-50 p-4 rounded-2xl border border-gray-200/60 space-y-3 relative">
+                <h3 id="formTitle" class="font-bold text-sm text-gray-700">নতুন গাইডলাইন যোগ করুন</h3>
+                <button onclick="closeScheduleForm()" class="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition">
+                    <span class="material-symbols-outlined text-lg">close</span>
+                </button>
+                <form id="scheduleForm" onsubmit="saveSchedule(event)" class="space-y-3">
+                    <input type="hidden" id="scheduleId">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-500 block mb-1">ঔষধ/ভ্যাকসিনের নাম</label>
+                            <input type="text" id="schedName" required placeholder="যেমন: BCRD" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-teal-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-500 block mb-1">টার্গেট দিন (মুরগির বয়স)</label>
+                            <input type="number" id="schedDay" required placeholder="যেমন: ৭" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-teal-500">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-500 block mb-1">ধরণ / ক্যাটাগরি</label>
+                            <select id="schedCategory" required class="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-teal-500">
+                                <option value="Vaccine">ভ্যাকসিন (Vaccine)</option>
+                                <option value="Antibiotic">অ্যান্টিবায়োটিক</option>
+                                <option value="Vitamin">ভিটামিন ও জিংক</option>
+                                <option value="Saline">স্যালাইন ও গ্লুকোজ</option>
+                                <option value="Calcium">ক্যালসিয়াম</option>
+                                <option value="Deworming">কৃমিনাশক</option>
+                                <option value="Others">অন্যান্য</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-500 block mb-1">মাত্রা ও পরিমাণ</label>
+                            <input type="text" id="schedDose" required placeholder="যেমন: ১ ফোঁটা চোখে" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-teal-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-500 block mb-1">বিবরণ / গাইডলাইন</label>
+                        <textarea id="schedDesc" required placeholder="প্রয়োগের পদ্ধতি ও গুরুত্ব লিখুন..." rows="2" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-teal-500"></textarea>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="submit" class="flex-grow bg-teal-600 hover:bg-teal-700 text-white p-3 rounded-xl text-xs font-bold transition shadow-sm">সংরক্ষণ করুন</button>
+                        <button type="button" id="btnDeleteSched" onclick="deleteSchedule()" class="hidden bg-red-50 hover:bg-red-100 text-red-600 px-4 rounded-xl text-xs font-bold transition">মুছে ফেলুন</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- List of current guidelines -->
+            <div id="scheduleList" class="space-y-3 max-h-96 overflow-y-auto no-scrollbar">
+                <p class="text-center text-gray-400 text-xs py-10">লোড হচ্ছে...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDkqjA1Io411uidSZBLbYJlYHWGVY36zc8",
+            authDomain: "shuvo-all-tools.firebaseapp.com",
+            databaseURL: "https://shuvo-all-tools-default-rtdb.firebaseio.com/",
+            projectId: "shuvo-all-tools",
+            storageBucket: "shuvo-all-tools.appspot.com",
+            messagingSenderId: "475600173705",
+            appId: "1:475600173705:android:0251b1d46457dc4e806458"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // --- 1. Scrolling Text ---
+        const scrollTextEl = document.getElementById("scrollText");
+        const scrollInput = document.getElementById("scrollInput");
+        const scrollRef = db.ref("admin_scroll_text");
+
+        scrollRef.on("value", snapshot => {
+            const text = snapshot.val() || "📌 কোন বার্তা নেই।";
+            scrollTextEl.textContent = text;
+            scrollInput.value = text;
+        });
+
+        document.getElementById("updateScroll").addEventListener("click", async () => {
+            const newText = scrollInput.value.trim();
+            if (newText) {
+                await scrollRef.set(newText);
+                alert("✅ Scrolling text আপডেট হয়েছে!");
+            }
+        });
+
+        // --- 2. Medicine & Vaccine Guideline Manager ---
+        const scheduleRef = db.ref("medicine_schedule");
+        let allSchedules = {};
+
+        // Default list to seed if empty
+        const defaultSchedules = [
+            { day: 1, name: "স্যালাইন ও গ্লুকোজ পানি", category: "Saline", dose: "১ গ্রাম প্রতি লিটার", desc: "মুরগির ধকল বা ক্লান্তি দূর করার জন্য এবং শক্তি যোগাতে পানির সাথে প্রথম দিন দিতে হয়।" },
+            { day: 3, name: "ভিটামিন ও অ্যামিনো অ্যাসিড", category: "Vitamin", dose: "১ মিলি প্রতি ২ লিটার", desc: "৩য় থেকে ৫ম দিন পর্যন্ত মুরগির দৈহিক বৃদ্ধির জন্য ও রোগ প্রতিরোধ ক্ষমতা গড়ে তুলতে।" },
+            { day: 7, name: "রাণীক্ষেত ও ব্রঙ্কাইটিস (BCRD)", category: "Vaccine", dose: "১ ফোঁটা চোখে", desc: "৭ম দিনে রাণীক্ষেত ও সংক্রামক ব্রঙ্কাইটিস রোগের প্রাথমিক প্রতিরোধে অত্যন্ত গুরুত্বপূর্ণ ভ্যাকসিন।" },
+            { day: 12, name: "গাম্বোরো প্রথম ডোজ (Gumboro)", category: "Vaccine", dose: "১ ফোঁটা চোখে", desc: "১২তম দিনে অত্যন্ত সংক্রামক গাম্বোরো রোগের ভ্যাকসিন প্রয়োগ করতে হয়।" },
+            { day: 18, name: "গাম্বোরো বুস্টার ডোজ (Gumboro Booster)", category: "Vaccine", dose: "পানিতে মিশিয়ে", desc: "১৮তম দিনে প্রথম গাম্বোরো ভ্যাকসিনের কার্যকারিতা বাড়াতে বুস্টার ডোজ।" },
+            { day: 24, name: "রাণীক্ষেত বুস্টার ডোজ (BCRD Booster)", category: "Vaccine", dose: "পানিতে মিশিয়ে", desc: "২৪তম দিনে রাণীক্ষেত রোগের বুস্টার ডোজ দীর্ঘমেয়াদী সুরক্ষার জন্য প্রয়োগ করুন।" },
+            { day: 28, name: "কৃমিনাশক ঔষধ (Deworming)", category: "Deworming", dose: "১ গ্রাম প্রতি লিটার", desc: "২৮তম দিনে কৃমি দূর করতে পানিতে মিশিয়ে বা পোল্ট্রি ভেটেরিনারি পরামর্শ অনুযায়ী।" }
+        ];
+
+        // Categories Map for UI
+        const medCategories = {
+            'Vaccine': { icon: '💉', label: 'ভ্যাকসিন', color: 'text-blue-600 bg-blue-50' },
+            'Antibiotic': { icon: '💊', label: 'অ্যান্টিবায়োটিক', color: 'text-red-600 bg-red-50' },
+            'Vitamin': { icon: '🍏', label: 'ভিটামিন', color: 'text-purple-600 bg-purple-50' },
+            'Saline': { icon: '🥤', label: 'স্যালাইন', color: 'text-teal-600 bg-teal-50' },
+            'Calcium': { icon: '🦴', label: 'ক্যালসিয়াম', color: 'text-orange-600 bg-orange-50' },
+            'Deworming': { icon: '🐛', label: 'কৃমিনাশক', color: 'text-amber-600 bg-amber-50' },
+            'Others': { icon: '📦', label: 'অন্যান্য', color: 'text-gray-600 bg-gray-50' }
+        };
+
+        // Fetch Guideline Schedules from Admin Database
+        scheduleRef.on("value", snapshot => {
+            const data = snapshot.val();
+            allSchedules = data || {};
+            const listContainer = document.getElementById("scheduleList");
+            listContainer.innerHTML = "";
+
+            if (!data) {
+                // If completely empty, auto-seed with standard schedules
+                listContainer.innerHTML = `
+                    <div class="text-center py-6">
+                        <p class="text-sm text-gray-500 mb-3">ডাটাবেজে কোনো গাইডলাইন পাওয়া যায়নি।</p>
+                        <button onclick="autoSeedSchedules()" class="bg-teal-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow active:scale-95">
+                            ডিফল্ট ৭টি গাইডলাইন সেট করুন
+                        </button>
+                    </div>`;
+                return;
+            }
+
+            // Sort schedules by target day
+            const sorted = Object.entries(data).sort((a, b) => a[1].day - b[1].day);
+
+            sorted.forEach(([id, item]) => {
+                const cat = medCategories[item.category] || medCategories['Others'];
+                const html = `
+                    <div onclick="editSchedule('${id}')" class="bg-gray-50 hover:bg-gray-100/80 border border-gray-100 p-4 rounded-2xl flex items-center justify-between cursor-pointer transition">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl ${cat.color} flex items-center justify-center text-xl font-bold">
+                                ${cat.icon}
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-xs text-gray-800 flex items-center gap-2">
+                                    ${item.name} 
+                                    <span class="bg-teal-100 text-teal-800 text-[9px] font-bold px-1.5 py-0.5 rounded-full">${item.day}ম দিন</span>
+                                </h4>
+                                <p class="text-[10px] text-gray-400 mt-0.5 truncate max-w-[200px] sm:max-w-md">${item.desc}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] font-bold text-gray-500 block">${item.dose}</span>
+                            <span class="text-[8px] text-gray-400">${cat.label}</span>
+                        </div>
+                    </div>`;
+                listContainer.innerHTML += html;
+            });
+        });
+
+        // Seed Default Guidelines
+        async function autoSeedSchedules() {
+            if (confirm("আপনি কি ডিফল্ট পোল্ট্রি ভ্যাকসিন ও ঔষধের গাইডলাইনগুলো ডাটাবেজে সেট করতে চান?")) {
+                for (const item of defaultSchedules) {
+                    await scheduleRef.push(item);
+                }
+                alert("✅ ডিফল্ট গাইডলাইনগুলো সফলভাবে সেভ হয়েছে!");
+            }
+        }
+
+        // Form Helpers
+        function openScheduleForm() {
+            document.getElementById("scheduleForm").reset();
+            document.getElementById("scheduleId").value = "";
+            document.getElementById("formTitle").innerText = "নতুন গাইডলাইন যোগ করুন";
+            document.getElementById("btnDeleteSched").classList.add("hidden");
+            document.getElementById("scheduleFormContainer").classList.remove("hidden");
+        }
+
+        function closeScheduleForm() {
+            document.getElementById("scheduleFormContainer").classList.add("hidden");
+        }
+
+        // Edit Mode
+        function editSchedule(id) {
+            const item = allSchedules[id];
+            if (!item) return;
+
+            document.getElementById("scheduleId").value = id;
+            document.getElementById("schedName").value = item.name;
+            document.getElementById("schedDay").value = item.day;
+            document.getElementById("schedCategory").value = item.category;
+            document.getElementById("schedDose").value = item.dose;
+            document.getElementById("schedDesc").value = item.desc;
+
+            document.getElementById("formTitle").innerText = "গাইডলাইন এডিট করুন";
+            document.getElementById("btnDeleteSched").classList.remove("hidden");
+            document.getElementById("scheduleFormContainer").classList.remove("hidden");
+        }
+
+        // Save (Create or Update)
+        async function saveSchedule(e) {
+            e.preventDefault();
+            const id = document.getElementById("scheduleId").value;
+            const data = {
+                name: document.getElementById("schedName").value.trim(),
+                day: parseInt(document.getElementById("schedDay").value),
+                category: document.getElementById("schedCategory").value,
+                dose: document.getElementById("schedDose").value.trim(),
+                desc: document.getElementById("schedDesc").value.trim()
+            };
+
+            if (id) {
+                await scheduleRef.child(id).update(data);
+                alert("✅ গাইডলাইনটি সফলভাবে আপডেট হয়েছে!");
+            } else {
+                await scheduleRef.push(data);
+                alert("✅ নতুন গাইডলাইনটি সফলভাবে যোগ হয়েছে!");
+            }
+            closeScheduleForm();
+        }
+
+        // Delete
+        async function deleteSchedule() {
+            const id = document.getElementById("scheduleId").value;
+            if (id && confirm("আপনি কি নিশ্চিত এই গাইডলাইনটি ডিলিট করতে চান?")) {
+                await scheduleRef.child(id).remove();
+                alert("🗑️ গাইডলাইনটি মুছে ফেলা হয়েছে!");
+                closeScheduleForm();
+            }
+        }
+    </script>
+</body>
+</html>

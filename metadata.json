@@ -1,0 +1,7 @@
+{
+  "name": "আমার খামার - স্মার্ট ম্যানেজার",
+  "description": "স্মার্ট পোল্ট্রি খামার ম্যানেজমেন্ট - আমার হিসাব",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

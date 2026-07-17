@@ -1,0 +1,16 @@
+{
+  "name": "amarhisab-smartmanager",
+  "version": "1.0.0",
+  "description": "আমার খামার - স্মার্ট পোল্ট্রি খামার ম্যানেজমেন্ট",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "echo 'No build step required for static site'",
+    "lint": "echo 'No linting required for static site'",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
