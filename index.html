@@ -125,6 +125,11 @@
             </header>
 
             <div class="p-5 space-y-6 pb-28">
+                <!-- 📢 রিয়েল-টাইম এডমিন স্ক্রলিং নোটিশ -->
+                <div id="global-scroll-container" class="hidden scrolling-text select-none">
+                    <span id="global-scroll-text">📌 খামারের সকল তথ্য এবং গাইডলাইন নিয়মিত এখানে আপডেট করা হবে।</span>
+                </div>
+
                 <div id="dashboard-summary" class="transform transition hover:scale-[1.02]"></div>
                 <div>
                     <div class="flex justify-between items-center mb-4">
@@ -225,7 +230,7 @@
 
         <div id="add-shipment-button-container" class="fixed bottom-24 right-6 z-20"><button onclick="navigate('add-shipment-page')" class="w-14 h-14 rounded-full bg-teal-700 text-white shadow-xl flex items-center justify-center transform transition hover:scale-110 active:scale-95"><span class="material-symbols-outlined text-3xl">add</span></button></div>
 
-        <nav class="absolute bottom-0 left-0 right-0 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700"><div class="flex h-16 items-center justify-around"><a href="#" onclick="navigateToTab('dashboard')" class="flex flex-col items-center gap-1 text-teal-700 dark:text-teal-400 nav-item" id="nav-dashboard"><span class="material-symbols-outlined">dashboard</span><span class="text-[10px] font-bold">ড্যাশবোর্ড</span></a><a href="#" onclick="navigateToTab('shipments-page')" class="flex flex-col items-center gap-1 text-gray-400 nav-item" id="nav-shipments-page"><span class="material-symbols-outlined">list_alt</span><span class="text-[10px] font-bold">চালান</span></a><a href="#" onclick="navigateToTab('settings-page')" class="flex flex-col items-center gap-1 text-gray-400 nav-item" id="nav-settings-page"><span class="material-symbols-outlined">settings</span><span class="text-[10px] font-bold">সেটিংস</span></a></div></nav>
+        <nav class="absolute bottom-0 left-0 right-0 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700"><div class="flex h-16 items-center justify-around"><a href="#" onclick="navigateToTab('dashboard')" class="flex flex-col items-center gap-1 text-teal-700 dark:text-teal-400 nav-item" id="nav-dashboard"><span class="material-symbols-outlined">dashboard</span><span class="text-[10px] font-bold">ড্যাশবোর্ড</span></a><a href="#" onclick="navigateToTab('shipments-page')" class="flex flex-col items-center gap-1 text-gray-400 nav-item" id="nav-shipments-page"><span class="material-symbols-outlined">list_alt</span><span class="text-[10px] font-bold">চালান</span></a><a href="#" onclick="navigateToTab('medicine-page')" class="flex flex-col items-center gap-1 text-gray-400 nav-item" id="nav-medicine-page"><span class="material-symbols-outlined">vaccines</span><span class="text-[10px] font-bold">ঔষধ</span></a><a href="#" onclick="navigateToTab('settings-page')" class="flex flex-col items-center gap-1 text-gray-400 nav-item" id="nav-settings-page"><span class="material-symbols-outlined">settings</span><span class="text-[10px] font-bold">সেটিংস</span></a></div></nav>
     </main>
     
     <div id="video-modal" class="hidden fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-4 backdrop-blur-md"><div class="bg-black w-full max-w-lg rounded-3xl overflow-hidden relative shadow-2xl border border-white/10"><button onclick="closeVideoModal()" class="absolute top-4 right-4 z-10 bg-white/10 hover:bg-red-600 text-white rounded-full p-2 backdrop-blur-md transition"><span class="material-symbols-outlined">close</span></button><div class="relative pb-[56.25%] h-0"><iframe id="youtube-frame" class="absolute top-0 left-0 w-full h-full" src="" frameborder="0" allowfullscreen></iframe></div></div></div>
@@ -250,6 +255,19 @@
         window.app = app;
         window.db = db;
         window.auth = auth;
+
+        // রিয়েল-টাইম এডমিন স্ক্রলিং নোটিশ লিসেনার
+        db.ref("admin_scroll_text").on("value", snapshot => {
+            const text = snapshot.val();
+            const container = document.getElementById("global-scroll-container");
+            const el = document.getElementById("global-scroll-text");
+            if (text && text.trim() !== "" && text !== "📌 কোন বার্তা নেই।" && text !== "📌 কোন বার্তা নেই।") {
+                if (el) el.textContent = text;
+                if (container) container.classList.remove("hidden");
+            } else {
+                if (container) container.classList.add("hidden");
+            }
+        });
 
         let currentUser = null;
         let pageHistory = ['dashboard'];
@@ -337,6 +355,9 @@
                 e.classList.remove('text-teal-700', 'dark:text-teal-400'); 
                 if(e.id===`nav-${p}`) e.classList.add('text-teal-700', 'dark:text-teal-400'); 
             }); 
+            if (p === 'medicine-page' && typeof loadMedicineShipmentDropdowns === 'function') {
+                loadMedicineShipmentDropdowns();
+            }
         }
         function switchTab(t) { currentEntryType=t; document.getElementById('expense-list-container').classList.toggle('hidden', t!=='expense'); document.getElementById('income-list-container').classList.toggle('hidden', t!=='income'); document.getElementById('expense-tab-button').className=`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${t==='expense'?'bg-white dark:bg-gray-600 shadow text-teal-700 dark:text-white':'text-gray-500 dark:text-gray-400'}`; document.getElementById('income-tab-button').className=`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${t==='income'?'bg-white dark:bg-gray-600 shadow text-teal-700 dark:text-white':'text-gray-500 dark:text-gray-400'}`; }
         function toggleMenu(id) { document.getElementById(id).classList.toggle('hidden'); }
