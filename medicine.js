@@ -46,8 +46,22 @@ const medicinePageHTML = `
     </header>
 
     <div class="p-5 pb-28 space-y-5">
+        <!-- 📢 প্রতিদিনের ওষুধ সময়মতো দেওয়ার রিমাইন্ডার নোটিশ -->
+        <div class="bg-gradient-to-r from-teal-500/10 to-emerald-500/10 dark:from-teal-950/20 dark:to-emerald-950/20 border border-teal-500/20 dark:border-teal-800/40 p-4 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-teal-500/10 dark:bg-teal-400/10 flex items-center justify-center text-lg flex-shrink-0">
+                    🐔
+                </div>
+                <p class="text-xs font-bold text-teal-800 dark:text-teal-300 leading-relaxed">
+                    প্রতিদিনের ওষুধ সময়মতো দিতে ভুলবেন না 🐔
+                </p>
+            </div>
+            <div class="w-2.5 h-2.5 bg-teal-500 rounded-full animate-ping flex-shrink-0"></div>
+        </div>
+
         <!-- 🐔 Breed Filter Tabs (Exactly like the image) -->
         <div class="space-y-2">
+            <label class="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">জাত অনুযায়ী ফিল্টার</label>
             <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar" id="med-breed-tabs-container">
                 <button onclick="setBreedFilter('Broiler')" id="tab-breed-Broiler" class="px-5 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 border bg-teal-700 text-white border-teal-700 shadow-sm active:scale-95">
                     ব্রয়লার
@@ -60,6 +74,22 @@ const medicinePageHTML = `
                 </button>
                 <button onclick="setBreedFilter('Deshi')" id="tab-breed-Deshi" class="px-5 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 border bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 active:scale-95">
                     দেশি
+                </button>
+            </div>
+        </div>
+
+        <!-- 🎯 Tracking Status Filter Tabs (High-fidelity design) -->
+        <div class="space-y-2">
+            <label class="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">ওষুধের ব্যবহার ট্র্যাকিং</label>
+            <div class="bg-gray-100 dark:bg-gray-800/80 p-1 rounded-2xl flex items-center gap-1 shadow-inner">
+                <button onclick="setTrackingFilter('all')" id="tab-track-all" class="flex-1 py-2.5 rounded-xl text-xs font-black transition-all duration-200 bg-white dark:bg-gray-700 text-teal-700 dark:text-teal-400 shadow-sm active:scale-95">
+                    সব ওষুধ (<span id="count-track-all">0</span>)
+                </button>
+                <button onclick="setTrackingFilter('remaining')" id="tab-track-remaining" class="flex-1 py-2.5 rounded-xl text-xs font-black transition-all duration-200 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 active:scale-95">
+                    বাকি আছে (<span id="count-track-remaining">0</span>)
+                </button>
+                <button onclick="setTrackingFilter('completed')" id="tab-track-completed" class="flex-1 py-2.5 rounded-xl text-xs font-black transition-all duration-200 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 active:scale-95">
+                    ব্যবহৃত হয়েছে (<span id="count-track-completed">0</span>)
                 </button>
             </div>
         </div>
@@ -332,7 +362,13 @@ if (targetDb) {
     }
 
     targetDb.ref("admin_scroll_text").on("value", snapshot => {
-        medScrollText = snapshot.val() || "";
+        let val = snapshot.val() || "";
+        // Clean up any 👻📌 prefix if present
+        val = val.replace(/👻📌/g, '');
+        if (val.includes("প্রতিদিনের ওষুধ")) {
+            val = "প্রতিদিনের ওষুধ সময়মতো দিতে ভুলবেন না 🐔";
+        }
+        medScrollText = val;
         updateMedScrollingBar();
     });
 
@@ -340,6 +376,128 @@ if (targetDb) {
         const val = snapshot.val();
         medScrollStatus = (val !== false);
         updateMedScrollingBar();
+    });
+}
+
+// ৪. ওষধ ট্র্যাকিং গ্লোবাল স্টেট ও মেথডসমূহ
+let completedMedicinesMap = {};
+let currentTrackingFilter = 'all';
+
+function setTrackingFilter(filter) {
+    currentTrackingFilter = filter;
+    
+    const filters = ['all', 'remaining', 'completed'];
+    filters.forEach(f => {
+        const btn = document.getElementById(`tab-track-${f}`);
+        if (btn) {
+            if (f === filter) {
+                btn.className = "flex-1 py-2.5 rounded-xl text-xs font-black transition-all duration-200 bg-white dark:bg-gray-700 text-teal-700 dark:text-teal-400 shadow-sm active:scale-95";
+            } else {
+                btn.className = "flex-1 py-2.5 rounded-xl text-xs font-black transition-all duration-200 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-gray-700/50 active:scale-95";
+            }
+        }
+    });
+
+    renderScheduleTimeline();
+}
+
+function initCompletedMedicinesListener(userId) {
+    if (!userId) return;
+    
+    // লোকাল ক্যাশ লোড করা (অফলাইন সাপোর্ট)
+    const cached = localStorage.getItem(`completed_meds_${userId}`);
+    if (cached) {
+        try {
+            completedMedicinesMap = JSON.parse(cached);
+        } catch (e) {
+            console.warn("Error parsing cached completed medicines", e);
+        }
+    }
+    
+    if (targetDb) {
+        targetDb.ref(`users/${userId}/completed_medicines`).on('value', snapshot => {
+            completedMedicinesMap = snapshot.val() || {};
+            localStorage.setItem(`completed_meds_${userId}`, JSON.stringify(completedMedicinesMap));
+            renderScheduleTimeline();
+        }, error => {
+            console.warn("Using offline cached completed medicines:", error);
+            renderScheduleTimeline();
+        });
+    } else {
+        renderScheduleTimeline();
+    }
+}
+
+function showToastMessage(msg) {
+    if (typeof showToast === 'function') {
+        showToast(msg);
+    } else if (typeof window.showToast === 'function') {
+        window.showToast(msg);
+    } else if (typeof parent.showToast === 'function') {
+        parent.showToast(msg);
+    } else {
+        alert(msg);
+    }
+}
+
+async function toggleMedicineCompletion(itemKey, isCompleted) {
+    const userId = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.uid : null;
+    if (!userId) {
+        showToastMessage("⚠️ ট্র্যাকিং সুবিধা ব্যবহার করতে প্রথমে সাইন-ইন/লগইন করুন!");
+        return;
+    }
+
+    if (isCompleted) {
+        completedMedicinesMap[itemKey] = {
+            timestamp: Date.now(),
+            markedAt: new Date().toISOString()
+        };
+        showToastMessage("✅ ওষুধটি সফলভাবে ব্যবহৃত মার্ক করা হয়েছে");
+    } else {
+        delete completedMedicinesMap[itemKey];
+        showToastMessage("🔄 ওষুধের ট্র্যাকিং পুনরায় সেট করা হয়েছে");
+    }
+    localStorage.setItem(`completed_meds_${userId}`, JSON.stringify(completedMedicinesMap));
+    renderScheduleTimeline();
+
+    if (targetDb) {
+        try {
+            if (isCompleted) {
+                await targetDb.ref(`users/${userId}/completed_medicines/${itemKey}`).set({
+                    timestamp: firebase.database.ServerValue.TIMESTAMP || Date.now(),
+                    markedAt: new Date().toISOString()
+                });
+            } else {
+                await targetDb.ref(`users/${userId}/completed_medicines/${itemKey}`).remove();
+            }
+        } catch (error) {
+            console.error("Error saving medicine track status:", error);
+        }
+    }
+}
+
+// Auth State Hooks
+if (typeof auth !== 'undefined') {
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            initCompletedMedicinesListener(user.uid);
+        } else {
+            completedMedicinesMap = {};
+            renderScheduleTimeline();
+        }
+    });
+} else {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    initCompletedMedicinesListener(user.uid);
+                } else {
+                    completedMedicinesMap = {};
+                    renderScheduleTimeline();
+                }
+            });
+        }
     });
 }
 
@@ -667,7 +825,28 @@ function renderScheduleTimeline() {
     // ডাটাবেজ এবং ডিফল্ট গাইডলাইনের সমন্বয়
     let activeSchedulesList = adminSchedules.length > 0 ? adminSchedules : standardSchedule;
 
-    // ১. ফিল্টারিং করুন জাত ও সার্চ কুয়েরি অনুযায়ী
+    // ০. ব্রিড অনুযায়ী নোটিফিকেশন ট্যাবগুলির কাউন্ট আপডেট করা
+    const breedSchedules = activeSchedulesList.filter(item => !item.breed || item.breed === 'All' || item.breed === currentBreedFilter);
+    let totalMeds = breedSchedules.length;
+    let completedMeds = 0;
+    
+    breedSchedules.forEach(item => {
+        const itemKey = item.id || ('std_' + item.day + '_' + item.name.replace(/\s+/g, '_') + '_' + (item.time || ''));
+        if (completedMedicinesMap[itemKey]) {
+            completedMeds++;
+        }
+    });
+    
+    let remainingMeds = totalMeds - completedMeds;
+
+    const countAll = document.getElementById('count-track-all');
+    const countRemaining = document.getElementById('count-track-remaining');
+    const countCompleted = document.getElementById('count-track-completed');
+    if (countAll) countAll.innerText = totalMeds;
+    if (countRemaining) countRemaining.innerText = remainingMeds;
+    if (countCompleted) countCompleted.innerText = completedMeds;
+
+    // ১. ফিল্টারিং করুন জাত ও সার্চ কুয়েরি এবং ট্র্যাকিং ফিল্টার অনুযায়ী
     let filteredSchedules = activeSchedulesList.filter(item => {
         // ব্রিড ম্যাচিং (All বা সিলেক্টেড ব্রিড)
         const matchesBreed = !item.breed || item.breed === 'All' || item.breed === currentBreedFilter;
@@ -679,7 +858,17 @@ function renderScheduleTimeline() {
             (item.day && String(item.day).includes(medSearchQuery)) ||
             (item.time && item.time.toLowerCase().includes(medSearchQuery));
 
-        return matchesBreed && matchesSearch;
+        if (!matchesBreed || !matchesSearch) return false;
+
+        const itemKey = item.id || ('std_' + item.day + '_' + item.name.replace(/\s+/g, '_') + '_' + (item.time || ''));
+        const isCompleted = !!completedMedicinesMap[itemKey];
+
+        if (currentTrackingFilter === 'remaining') {
+            return !isCompleted;
+        } else if (currentTrackingFilter === 'completed') {
+            return isCompleted;
+        }
+        return true;
     });
 
     if (filteredSchedules.length === 0) {
@@ -694,10 +883,17 @@ function renderScheduleTimeline() {
             </div>`;
         }
         
+        let emptyMessage = "কোনো ঔষধ বা ভ্যাকসিন গাইডলাইন যুক্ত করা নেই।";
+        if (currentTrackingFilter === 'remaining') {
+            emptyMessage = "🎉 চমৎকার! আপনার কোনো ঔষধ বাকি নেই।";
+        } else if (currentTrackingFilter === 'completed') {
+            emptyMessage = "আপনি এখনও কোনো ঔষধ ব্যবহার করা হয়েছে মার্ক করেননি।";
+        }
+
         sView.innerHTML = `
             <div class="text-center py-16 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/80 p-6 shadow-sm animate-[fadeIn_0.3s_ease-out]">
                 <span class="material-symbols-outlined text-5xl text-teal-600/30 mb-3 animate-pulse">vaccines</span>
-                <p class="text-sm font-bold text-gray-500 dark:text-gray-400">কোনো ঔষধ বা ভ্যাকসিন গাইডলাইন যুক্ত করা নেই।</p>
+                <p class="text-sm font-bold text-gray-500 dark:text-gray-400">${emptyMessage}</p>
                 <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">জাত: ${currentBreedFilter === 'ColorBird' ? 'কালার বার্ড' : currentBreedFilter === 'Sonali' ? 'সোনালি' : currentBreedFilter === 'Deshi' ? 'দেশি' : 'ব্রয়লার'} এবং সার্চ: "${medSearchQuery || 'সব'}"</p>
                 ${seedButtonHtml}
             </div>`;
@@ -785,21 +981,63 @@ function renderScheduleTimeline() {
                 </div>`;
             }
 
+            const itemKey = item.id || ('std_' + item.day + '_' + item.name.replace(/\s+/g, '_') + '_' + (item.time || ''));
+            const isCompleted = !!completedMedicinesMap[itemKey];
+
+            // Completion state indicators
+            let completionBadgeHtml = '';
+            let completionActionHtml = '';
+            
+            if (isCompleted) {
+                completionBadgeHtml = `
+                <span class="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-black px-2.5 py-1 rounded-xl border border-emerald-200/60 dark:border-emerald-800/40 shadow-sm animate-[scaleIn_0.2s_ease-out]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    ব্যবহৃত হয়েছে
+                </span>`;
+                
+                completionActionHtml = `
+                <div class="flex items-center justify-between w-full bg-emerald-50/50 dark:bg-emerald-950/20 px-4 py-3 rounded-2xl border border-emerald-500/20 dark:border-emerald-500/10 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-emerald-500 font-black text-sm">done</span>
+                        </div>
+                        <span class="text-xs font-bold text-emerald-800 dark:text-emerald-300">ওষুধটি দেওয়া সম্পন্ন হয়েছে</span>
+                    </div>
+                    <button onclick="toggleMedicineCompletion('${itemKey}', false)" class="text-[10px] font-black text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400 flex items-center gap-1 transition-colors py-1 px-2.5 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-150 dark:border-gray-700 active:scale-95">
+                        <span class="material-symbols-outlined text-xs font-bold">undo</span>
+                        বাতিল করুন
+                    </button>
+                </div>`;
+            } else {
+                completionBadgeHtml = `
+                <span class="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 text-[10px] font-black px-2.5 py-1 rounded-xl border border-amber-200/50 dark:border-amber-900/30 shadow-sm">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    বাকি আছে
+                </span>`;
+                
+                completionActionHtml = `
+                <button onclick="toggleMedicineCompletion('${itemKey}', true)" class="w-full flex items-center justify-center gap-2 py-3 px-4 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-black rounded-2xl text-xs transition-all shadow-md shadow-teal-500/15 hover:shadow-lg active:scale-[0.98] border border-teal-500/20">
+                    <span class="material-symbols-outlined text-sm font-black">done_all</span>
+                    ব্যবহার করা হয়েছে মার্ক করুন
+                </button>`;
+            }
+
             const cardHtml = `
-            <div class="p-5 rounded-3xl border-2 transition-all duration-300 ${extraBorderClass} ${glowClass} space-y-4 hover:shadow-lg animate-[fadeIn_0.3s_ease-out]">
+            <div class="p-5 rounded-3xl border-2 transition-all duration-300 ${extraBorderClass} ${glowClass} space-y-4 hover:shadow-lg animate-[fadeIn_0.3s_ease-out] ${isCompleted ? 'bg-emerald-500/5 dark:bg-emerald-950/5 border-emerald-500/30 dark:border-emerald-500/20' : ''}">
                 <div class="flex justify-between items-start gap-2">
                     <div class="flex items-center gap-3">
                         <!-- Custom Medicine Bottle Icon Design -->
-                        <div class="w-11 h-11 rounded-2xl bg-white dark:bg-gray-800 border-2 border-emerald-500/30 flex items-center justify-center flex-shrink-0 shadow-md">
-                            <span class="material-symbols-outlined text-emerald-600 dark:text-emerald-500 font-black text-2xl">medical_services</span>
+                        <div class="w-11 h-11 rounded-2xl bg-white dark:bg-gray-800 border-2 ${isCompleted ? 'border-emerald-500' : 'border-emerald-500/30'} flex items-center justify-center flex-shrink-0 shadow-md">
+                            <span class="material-symbols-outlined ${isCompleted ? 'text-emerald-500' : 'text-emerald-600/70'} font-black text-2xl">medical_services</span>
                         </div>
                         <div>
-                            <h3 class="font-black text-gray-800 dark:text-white text-sm sm:text-base leading-tight">${item.name}</h3>
+                            <h3 class="font-black text-gray-850 dark:text-white text-sm sm:text-base leading-tight ${isCompleted ? 'line-through text-gray-400 dark:text-gray-500 font-bold' : ''}">${item.name}</h3>
                             <div class="flex items-center gap-1.5 mt-1">
                                 <span class="text-[9px] uppercase font-black tracking-wider ${theme.textColor} bg-white dark:bg-gray-800 px-2 py-0.5 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm">
                                     ${catInfo.label}
                                 </span>
                                 ${item.breed === 'All' ? '<span class="text-[9px] bg-teal-600 text-white px-2 py-0.5 rounded-lg font-black shadow-sm">সব জাত</span>' : ''}
+                                ${completionBadgeHtml}
                             </div>
                         </div>
                     </div>
@@ -821,6 +1059,11 @@ function renderScheduleTimeline() {
                 <div class="flex items-start gap-2 text-xs text-red-700 dark:text-red-400 bg-red-50/70 dark:bg-red-950/20 p-3 rounded-2xl border border-red-200 dark:border-red-900/30 shadow-sm font-bold">
                     <span class="material-symbols-outlined text-sm text-red-500 mt-0.5 flex-shrink-0 font-extrabold">info</span>
                     <span><strong class="text-red-800 dark:text-red-300">বি:দ্র:</strong> ${item.desc}</span>
+                </div>
+
+                <!-- Completion Interactive Toggle Bar -->
+                <div class="flex gap-2.5 pt-1">
+                    ${completionActionHtml}
                 </div>
             </div>`;
             
