@@ -1,7 +1,17 @@
 // 🌐 Network First Strategy (নিরাপদ অফলাইন সিস্টেম)
 
-const CACHE_NAME = 'khamar-app-v7';
-const urlsToCache = ['./', './index.html', './stock.js', './daily_report.js'];
+const CACHE_NAME = 'khamar-app-v8';
+const urlsToCache = [
+    './', 
+    './index.html', 
+    './stock.js', 
+    './daily_report.js',
+    './medicine.js',
+    './notifications.js',
+    './admin.html',
+    './manifest.json',
+    './icon.png'
+];
 
 self.addEventListener('install', event => {
     self.skipWaiting(); // আপডেট পেলে সাথে সাথে চালু হবে

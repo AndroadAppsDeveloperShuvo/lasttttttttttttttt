@@ -227,14 +227,12 @@
         };
 
         // Fetch Guideline Schedules from Admin Database
-        scheduleRef.on("value", snapshot => {
-            const data = snapshot.val();
-            allSchedules = data || {};
+        function renderAdminScheduleList(data) {
             const listContainer = document.getElementById("scheduleList");
+            if (!listContainer) return;
             listContainer.innerHTML = "";
 
-            if (!data) {
-                // If completely empty, auto-seed with standard schedules
+            if (!data || Object.keys(data).length === 0) {
                 listContainer.innerHTML = `
                     <div class="text-center py-6">
                         <p class="text-sm text-gray-500 mb-3">ডাটাবেজে কোনো গাইডলাইন পাওয়া যায়নি।</p>
@@ -246,7 +244,7 @@
             }
 
             // Sort schedules by target day
-            const sorted = Object.entries(data).sort((a, b) => a[1].day - b[1].day);
+            const sorted = Object.entries(data).sort((a, b) => (a[1].day || 0) - (b[1].day || 0));
 
             sorted.forEach(([id, item]) => {
                 const cat = medCategories[item.category] || medCategories['Others'];
@@ -276,6 +274,40 @@
                     </div>`;
                 listContainer.innerHTML += html;
             });
+        }
+
+        // অফলাইন ক্যাশ থেকে প্রাথমিকভাবে লোড করা
+        try {
+            const cachedSched = localStorage.getItem('cached_medicine_schedule');
+            if (cachedSched) {
+                const arr = JSON.parse(cachedSched);
+                if (Array.isArray(arr) && arr.length > 0) {
+                    allSchedules = {};
+                    arr.forEach(item => {
+                        if (item.id) allSchedules[item.id] = item;
+                    });
+                    renderAdminScheduleList(allSchedules);
+                }
+            }
+        } catch (e) {}
+
+        scheduleRef.on("value", snapshot => {
+            const data = snapshot.val();
+            allSchedules = data || {};
+            if (data) {
+                const arr = Object.entries(data).map(([id, val]) => ({ id, ...val })).sort((a, b) => (a.day || 0) - (b.day || 0));
+                try {
+                    localStorage.setItem('cached_medicine_schedule', JSON.stringify(arr));
+                } catch (e) {}
+            } else {
+                try {
+                    localStorage.setItem('cached_medicine_schedule', JSON.stringify([]));
+                } catch (e) {}
+            }
+            renderAdminScheduleList(allSchedules);
+        }, error => {
+            console.warn("Offline admin mode fallback to local cache:", error);
+            renderAdminScheduleList(allSchedules);
         });
 
         // Custom confirm logic

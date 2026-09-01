@@ -264,7 +264,17 @@ const standardSchedule = [
     { day: 45, name: "কৃমিনাশক কোর্স ও লিভার টনিক", category: "Deworming", dose: "১ গ্রাম প্রতি লিটার পানিতে", desc: "দেশি মুরগিতে ৪৫তম দিনে প্রথম কৃমিনাশক দিন। পরবর্তী ৩ দিন লিভার টনিক দিবেন।", breed: "Deshi", time: "সকাল" }
 ];
 
-let adminSchedules = [...standardSchedule];
+let adminSchedules = [];
+try {
+    const cachedSched = localStorage.getItem('cached_medicine_schedule');
+    if (cachedSched) {
+        adminSchedules = JSON.parse(cachedSched);
+        if (!Array.isArray(adminSchedules)) adminSchedules = [];
+    }
+} catch (e) {
+    console.warn("Failed to load cached medicine schedules", e);
+    adminSchedules = [];
+}
 let currentBreedFilter = 'Broiler';
 let medicineAdminModeEnabled = false;
 
@@ -336,14 +346,28 @@ if (targetDb) {
             adminSchedules = [];
         }
         
+        // লোকাল স্টোরেজে সংরক্ষণ (অফলাইনেও যেন শুধু ইউজার/এডমিনের ডাটা থাকে)
+        try {
+            localStorage.setItem('cached_medicine_schedule', JSON.stringify(adminSchedules));
+        } catch (err) {
+            console.warn("Failed to cache medicine schedule", err);
+        }
+        
         // গাইড ট্যাব বা ভিউ রিফ্রেশ
         const schedListView = document.getElementById('schedule-list-view');
         if (schedListView) {
             renderScheduleTimeline();
         }
     }, error => {
-        console.warn("Using fallback standardSchedule due to connection error:", error);
-        adminSchedules = [...standardSchedule];
+        console.warn("Database connection error, keeping local cache:", error);
+        try {
+            const cachedSched = localStorage.getItem('cached_medicine_schedule');
+            if (cachedSched) {
+                adminSchedules = JSON.parse(cachedSched);
+                if (!Array.isArray(adminSchedules)) adminSchedules = [];
+            }
+        } catch (e) {}
+        renderScheduleTimeline();
     });
 
     // স্ক্রলিং টেক্সট ও স্ট্যাটাস লিসেনার
@@ -822,8 +846,8 @@ function renderScheduleTimeline() {
     if (!sView) return;
     sView.innerHTML = '';
 
-    // ডাটাবেজ এবং ডিফল্ট গাইডলাইনের সমন্বয়
-    let activeSchedulesList = adminSchedules.length > 0 ? adminSchedules : standardSchedule;
+    // শুধুমাত্র সংরক্ষিত ডাটাবেজ/ক্যাশের তালিকা ব্যবহার হবে
+    let activeSchedulesList = adminSchedules || [];
 
     // ০. ব্রিড অনুযায়ী নোটিফিকেশন ট্যাবগুলির কাউন্ট আপডেট করা
     const breedSchedules = activeSchedulesList.filter(item => !item.breed || item.breed === 'All' || item.breed === currentBreedFilter);
