@@ -22,6 +22,10 @@ const medicinePageHTML = `
                         <span class="material-symbols-outlined text-teal-600 dark:text-teal-400 text-lg">refresh</span>
                         <span>রিফ্রেশ করুন</span>
                     </div>
+                    <div id="med-menu-video-edit-btn" onclick="clickMedMenu('video_edit')" class="hidden px-4 py-3 hover:bg-teal-50 dark:hover:bg-gray-700/50 flex items-center gap-3 text-xs font-bold cursor-pointer transition text-purple-600 dark:text-purple-400">
+                        <span class="material-symbols-outlined text-lg">video_settings</span>
+                        <span>ভিডিও লিংক পরিবর্তন</span>
+                    </div>
                     <div id="med-menu-admin-btn" onclick="clickMedMenu('admin')" class="px-4 py-3 hover:bg-teal-50 dark:hover:bg-gray-700/50 flex items-center gap-3 text-xs font-bold cursor-pointer transition text-red-600 dark:text-red-400">
                         <span class="material-symbols-outlined text-lg">lock</span>
                         <span>এডমিন লগইন</span>
@@ -37,6 +41,10 @@ const medicinePageHTML = `
             </div>
         </div>
         <div class="flex items-center gap-2">
+            <!-- Video Edit Button for Admin -->
+            <button id="med-video-admin-btn" onclick="openMedVideoEditModal()" class="hidden bg-white/20 hover:bg-white/30 text-white rounded-xl p-2 transition flex items-center justify-center active:scale-95" title="ভিডিও লিংক পরিবর্তন">
+                <span class="material-symbols-outlined text-xl">video_settings</span>
+            </button>
             <!-- Add Button for Admin -->
             <button id="med-add-btn" onclick="openMedFormModal()" class="hidden bg-white/20 hover:bg-white/30 text-white rounded-xl p-2 transition flex items-center justify-center active:scale-95">
                 <span class="material-symbols-outlined text-xl">add</span>
@@ -197,6 +205,54 @@ const medicinePageHTML = `
                 <div class="flex gap-2.5 pt-2">
                     <button type="submit" class="flex-grow bg-teal-600 hover:bg-teal-700 text-white font-bold p-3.5 rounded-xl text-xs transition duration-200 shadow-md active:scale-95">সংরক্ষণ করুন</button>
                     <button type="button" onclick="closeMedFormModal()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-300 font-bold px-4 rounded-xl text-xs transition">বাতিল</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 🎥 Floating Action Button (FAB) for Google Drive Breed Videos -->
+    <div id="med-video-fab-container" class="fixed bottom-20 right-4 sm:right-6 z-40 flex flex-col items-end gap-2 pointer-events-auto">
+        <button onclick="playCurrentBreedVideo()" id="med-video-fab-btn" class="group flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white rounded-full shadow-2xl shadow-red-600/50 transform transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-white dark:border-gray-800 focus:outline-none" title="ভিডিও গাইড দেখুন">
+            <span class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+            </span>
+            <span class="material-symbols-outlined text-2xl font-black transition-transform group-hover:scale-110">play_circle</span>
+            <span id="med-video-fab-text" class="text-xs font-black tracking-wide pr-1">ব্রয়লার ভিডিও</span>
+        </button>
+    </div>
+
+    <!-- 🎥 Video Link Editor Modal (For Admin) -->
+    <div id="med-video-edit-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+        <div class="bg-white dark:bg-gray-800 w-full max-w-md rounded-3xl p-6 shadow-2xl border border-gray-100 dark:border-gray-700 space-y-4 relative">
+            <button onclick="closeMedVideoEditModal()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <div class="flex items-center gap-2.5 text-red-600 dark:text-red-400 font-bold text-base">
+                <span class="material-symbols-outlined text-2xl">video_settings</span>
+                <h3>জাতভিত্তিক ভিডিও লিংক পরিবর্তন</h3>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">প্রতিটি জাতের জন্য গুগল ড্রাইভ বা ইউটিউব ভিডিওর লিংক সেট করুন।</p>
+            <form id="med-video-links-form" onsubmit="saveBreedVideoLinks(event)" class="space-y-3 pt-2">
+                <div>
+                    <label class="text-[11px] font-bold text-gray-600 dark:text-gray-300 block mb-1">ব্রয়লার (Broiler) ভিডিও লিংক:</label>
+                    <input type="text" id="video-link-Broiler" placeholder="https://drive.google.com/file/d/..." class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-red-500">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-gray-600 dark:text-gray-300 block mb-1">কালার বার্ড (ColorBird) ভিডিও লিংক:</label>
+                    <input type="text" id="video-link-ColorBird" placeholder="https://drive.google.com/file/d/..." class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-red-500">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-gray-600 dark:text-gray-300 block mb-1">সোনালি (Sonali) ভিডিও লিংক:</label>
+                    <input type="text" id="video-link-Sonali" placeholder="https://drive.google.com/file/d/..." class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-red-500">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-gray-600 dark:text-gray-300 block mb-1">দেশি (Deshi) ভিডিও লিংক:</label>
+                    <input type="text" id="video-link-Deshi" placeholder="https://drive.google.com/file/d/..." class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-red-500">
+                </div>
+                <div class="flex gap-2.5 pt-2">
+                    <button type="submit" class="flex-grow bg-red-600 hover:bg-red-700 text-white font-bold p-3 rounded-xl text-xs transition duration-200 shadow-md active:scale-95">সংরক্ষণ করুন</button>
+                    <button type="button" onclick="closeMedVideoEditModal()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-300 font-bold px-4 rounded-xl text-xs transition">বাতিল</button>
                 </div>
             </form>
         </div>
@@ -547,6 +603,10 @@ document.addEventListener('DOMContentLoaded', () => {
             enableAdminMode();
         }
 
+        // ভিডিও লিংক ইনিশিয়ালাইজ করুন
+        initBreedVideoLinks();
+        updateVideoFabLabel();
+
         // গ্লোবাল ক্লিক লিসেনার ড্রপডাউন বন্ধ করার জন্য (যাতে কোনো clashing না হয়)
         document.addEventListener('click', (event) => {
             const dropdown = document.getElementById("med-menu-dropdown");
@@ -606,6 +666,8 @@ function clickMedMenu(type) {
         loadMedicineShipmentDropdowns();
         renderScheduleTimeline();
         alert("🔄 সফলভাবে রিফ্রেশ করা হয়েছে!");
+    } else if (type === 'video_edit') {
+        openMedVideoEditModal();
     } else if (type === 'admin') {
         if (medicineAdminModeEnabled) {
             disableAdminMode();
@@ -654,6 +716,12 @@ function enableAdminMode() {
         menuBtn.innerHTML = `<span class="material-symbols-outlined text-lg">lock_open</span><span>এডমিন লগআউট</span>`;
     }
 
+    const videoEditMenuBtn = document.getElementById("med-menu-video-edit-btn");
+    if (videoEditMenuBtn) videoEditMenuBtn.classList.remove("hidden");
+
+    const videoAdminBtn = document.getElementById("med-video-admin-btn");
+    if (videoAdminBtn) videoAdminBtn.classList.remove("hidden");
+
     const addBtn = document.getElementById("med-add-btn");
     if (addBtn) addBtn.classList.remove("hidden");
 
@@ -678,10 +746,131 @@ function disableAdminMode() {
         menuBtn.innerHTML = `<span class="material-symbols-outlined text-lg">lock</span><span>এডমিন লগইন</span>`;
     }
 
+    const videoEditMenuBtn = document.getElementById("med-menu-video-edit-btn");
+    if (videoEditMenuBtn) videoEditMenuBtn.classList.add("hidden");
+
+    const videoAdminBtn = document.getElementById("med-video-admin-btn");
+    if (videoAdminBtn) videoAdminBtn.classList.add("hidden");
+
     const addBtn = document.getElementById("med-add-btn");
     if (addBtn) addBtn.classList.add("hidden");
 
     renderScheduleTimeline();
+}
+
+// 🎥 Breed Video Guide Links & FAB Logic
+let breedVideoLinks = {
+    'Broiler': 'https://drive.google.com/file/d/1ErsItnwlAp3miAbUdC-KTNR3OnHQmm5l/preview',
+    'ColorBird': 'https://drive.google.com/file/d/1jmpt5J-nsFFLiHfTAglke4UpF_uhBYLe/preview',
+    'Sonali': 'https://drive.google.com/file/d/1ErsItnwlAp3miAbUdC-KTNR3OnHQmm5l/preview',
+    'Deshi': 'https://drive.google.com/file/d/1ErsItnwlAp3miAbUdC-KTNR3OnHQmm5l/preview'
+};
+
+function initBreedVideoLinks() {
+    try {
+        const cached = localStorage.getItem('cached_breed_video_links');
+        if (cached) {
+            breedVideoLinks = { ...breedVideoLinks, ...JSON.parse(cached) };
+        }
+    } catch (e) {}
+
+    if (targetDb) {
+        targetDb.ref('breed_video_links').on('value', snapshot => {
+            const data = snapshot.val();
+            if (data) {
+                breedVideoLinks = { ...breedVideoLinks, ...data };
+                try {
+                    localStorage.setItem('cached_breed_video_links', JSON.stringify(breedVideoLinks));
+                } catch (e) {}
+            }
+            updateVideoFabLabel();
+        }, error => {
+            console.warn("Breed video links offline fallback:", error);
+        });
+    }
+}
+
+function getBreedVideoUrl(breed) {
+    const targetBreed = breed || currentBreedFilter || 'Broiler';
+    return breedVideoLinks[targetBreed] || breedVideoLinks['Broiler'] || 'https://drive.google.com/file/d/1ErsItnwlAp3miAbUdC-KTNR3OnHQmm5l/preview';
+}
+
+function updateVideoFabLabel() {
+    const breedLabels = {
+        'Broiler': 'ব্রয়লার ভিডিও',
+        'ColorBird': 'কালার বার্ড ভিডিও',
+        'Sonali': 'সোনালি ভিডিও',
+        'Deshi': 'দেশি ভিডিও'
+    };
+    const label = document.getElementById('med-video-fab-text');
+    if (label) {
+        label.innerText = breedLabels[currentBreedFilter] || 'ভিডিও গাইড';
+    }
+}
+
+function playCurrentBreedVideo() {
+    const breed = currentBreedFilter || 'Broiler';
+    const url = getBreedVideoUrl(breed);
+    if (typeof openVideoModal === 'function') {
+        openVideoModal(breed, url);
+    } else {
+        window.open(url, '_blank');
+    }
+}
+
+function openMedVideoEditModal() {
+    if (!medicineAdminModeEnabled) {
+        alert("🔒 ভিডিও লিংক পরিবর্তন করতে এডমিন মোড সক্রিয় থাকতে হবে!");
+        return;
+    }
+    const tabIds = ['Broiler', 'ColorBird', 'Sonali', 'Deshi'];
+    tabIds.forEach(breed => {
+        const input = document.getElementById(`video-link-${breed}`);
+        if (input) {
+            input.value = breedVideoLinks[breed] || '';
+        }
+    });
+    const modal = document.getElementById("med-video-edit-modal");
+    if (modal) modal.classList.remove("hidden");
+}
+
+function closeMedVideoEditModal() {
+    const modal = document.getElementById("med-video-edit-modal");
+    if (modal) modal.classList.add("hidden");
+}
+
+async function saveBreedVideoLinks(e) {
+    e.preventDefault();
+    if (!medicineAdminModeEnabled) {
+        alert("🔒 সংরক্ষণ করতে এডমিন মোড সক্রিয় থাকতে হবে!");
+        return;
+    }
+
+    const updated = {
+        'Broiler': document.getElementById('video-link-Broiler').value.trim() || breedVideoLinks['Broiler'],
+        'ColorBird': document.getElementById('video-link-ColorBird').value.trim() || breedVideoLinks['ColorBird'],
+        'Sonali': document.getElementById('video-link-Sonali').value.trim() || breedVideoLinks['Sonali'],
+        'Deshi': document.getElementById('video-link-Deshi').value.trim() || breedVideoLinks['Deshi']
+    };
+
+    breedVideoLinks = updated;
+    try {
+        localStorage.setItem('cached_breed_video_links', JSON.stringify(updated));
+    } catch (err) {}
+
+    if (targetDb) {
+        try {
+            await targetDb.ref('breed_video_links').set(updated);
+            alert("✅ ভিডিও লিংকগুলো সফলভাবে ডাটাবেজে সংরক্ষিত হয়েছে!");
+        } catch (err) {
+            console.error(err);
+            alert("⚠️ ক্লাউডে সেভ করতে সমস্যা হয়েছে, তবে লোকালি আপডেট হয়েছে!");
+        }
+    } else {
+        alert("✅ ভিডিও লিংক লোকালি সেভ হয়েছে!");
+    }
+    closeMedVideoEditModal();
+    updateVideoFabLabel();
 }
 
 // Breed Tab selection logic
@@ -700,6 +889,7 @@ function setBreedFilter(breed) {
         }
     });
 
+    updateVideoFabLabel();
     renderScheduleTimeline();
 }
 

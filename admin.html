@@ -142,6 +142,38 @@
             </div>
         </div>
 
+        <!-- 🎥 Breed Video Guide Links Manager -->
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 transition hover:shadow-md space-y-4">
+            <div class="flex justify-between items-center border-b pb-3 border-gray-100">
+                <h2 class="text-lg font-bold text-red-600 flex items-center gap-2">
+                    <span class="material-symbols-outlined">play_circle</span> জাতভিত্তিক ভিডিও গাইড লিংক
+                </h2>
+                <span class="text-xs bg-red-50 text-red-600 px-3 py-1 rounded-full font-bold">Google Drive / Video</span>
+            </div>
+            <p class="text-xs text-gray-500 font-medium">ব্যবহারকারীরা ওষুধ পেজে যে ভিডিও বাটন পাবে, সেটির প্রতিটি জাতের আলাদা ভিডিও লিংক নিচে সেট করুন।</p>
+            <form id="adminVideoLinksForm" onsubmit="saveAdminVideoLinks(event)" class="space-y-3 pt-2">
+                <div>
+                    <label class="text-[11px] font-bold text-gray-700 block mb-1">ব্রয়লার (Broiler) ভিডিও লিংক:</label>
+                    <input type="text" id="admin-video-Broiler" placeholder="https://drive.google.com/file/d/..." class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-red-500">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-gray-700 block mb-1">কালার বার্ড (ColorBird) ভিডিও লিংক:</label>
+                    <input type="text" id="admin-video-ColorBird" placeholder="https://drive.google.com/file/d/..." class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-red-500">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-gray-700 block mb-1">সোনালি (Sonali) ভিডিও লিংক:</label>
+                    <input type="text" id="admin-video-Sonali" placeholder="https://drive.google.com/file/d/..." class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-red-500">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-gray-700 block mb-1">দেশি (Deshi) ভিডিও লিংক:</label>
+                    <input type="text" id="admin-video-Deshi" placeholder="https://drive.google.com/file/d/..." class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-red-500">
+                </div>
+                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white p-3.5 rounded-xl text-xs font-bold transition shadow-sm active:scale-95 flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-sm font-bold">save</span> ভিডিও লিংক সংরক্ষণ করুন
+                </button>
+            </form>
+        </div>
+
     </main>
 
     <!-- Reusable Beautiful Confirmation Modal -->
@@ -425,6 +457,53 @@
                         document.getElementById("scheduleFormContainer").classList.add("hidden");
                     }
                 );
+            }
+        }
+
+        // --- 🎥 Breed Video Links Admin Manager ---
+        const videoLinksRef = db.ref("breed_video_links");
+        const defaultVideoLinks = {
+            'Broiler': 'https://drive.google.com/file/d/1ErsItnwlAp3miAbUdC-KTNR3OnHQmm5l/preview',
+            'ColorBird': 'https://drive.google.com/file/d/1jmpt5J-nsFFLiHfTAglke4UpF_uhBYLe/preview',
+            'Sonali': 'https://drive.google.com/file/d/1ErsItnwlAp3miAbUdC-KTNR3OnHQmm5l/preview',
+            'Deshi': 'https://drive.google.com/file/d/1ErsItnwlAp3miAbUdC-KTNR3OnHQmm5l/preview'
+        };
+
+        function renderVideoLinksForm(data) {
+            const current = { ...defaultVideoLinks, ...(data || {}) };
+            const breeds = ['Broiler', 'ColorBird', 'Sonali', 'Deshi'];
+            breeds.forEach(b => {
+                const el = document.getElementById(`admin-video-${b}`);
+                if (el) el.value = current[b] || '';
+            });
+        }
+
+        videoLinksRef.on("value", snapshot => {
+            const data = snapshot.val();
+            renderVideoLinksForm(data);
+            if (data) {
+                try {
+                    localStorage.setItem('cached_breed_video_links', JSON.stringify(data));
+                } catch (e) {}
+            }
+        });
+
+        async function saveAdminVideoLinks(e) {
+            e.preventDefault();
+            const data = {
+                'Broiler': document.getElementById('admin-video-Broiler').value.trim() || defaultVideoLinks['Broiler'],
+                'ColorBird': document.getElementById('admin-video-ColorBird').value.trim() || defaultVideoLinks['ColorBird'],
+                'Sonali': document.getElementById('admin-video-Sonali').value.trim() || defaultVideoLinks['Sonali'],
+                'Deshi': document.getElementById('admin-video-Deshi').value.trim() || defaultVideoLinks['Deshi']
+            };
+
+            try {
+                await videoLinksRef.set(data);
+                localStorage.setItem('cached_breed_video_links', JSON.stringify(data));
+                alert("✅ ভিডিও লিংকগুলো সফলভাবে সংরক্ষিত হয়েছে!");
+            } catch (err) {
+                console.error("Video save error:", err);
+                alert("❌ সংরক্ষণ করতে সমস্যা হয়েছে! ইন্টারনেট কানেকশন চেক করুন।");
             }
         }
     </script>

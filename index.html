@@ -229,7 +229,37 @@
         <nav class="absolute bottom-0 left-0 right-0 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700"><div class="flex h-16 items-center justify-around"><a href="#" onclick="navigateToTab('dashboard')" class="flex flex-col items-center gap-1 text-teal-700 dark:text-teal-400 nav-item" id="nav-dashboard"><span class="material-symbols-outlined">dashboard</span><span class="text-[10px] font-bold">ড্যাশবোর্ড</span></a><a href="#" onclick="navigateToTab('shipments-page')" class="flex flex-col items-center gap-1 text-gray-400 nav-item" id="nav-shipments-page"><span class="material-symbols-outlined">list_alt</span><span class="text-[10px] font-bold">চালান</span></a><a href="#" onclick="navigateToTab('medicine-page')" class="flex flex-col items-center gap-1 text-gray-400 nav-item" id="nav-medicine-page"><span class="material-symbols-outlined">vaccines</span><span class="text-[10px] font-bold">ঔষধ</span></a><a href="#" onclick="navigateToTab('settings-page')" class="flex flex-col items-center gap-1 text-gray-400 nav-item" id="nav-settings-page"><span class="material-symbols-outlined">settings</span><span class="text-[10px] font-bold">সেটিংস</span></a></div></nav>
     </main>
     
-    <div id="video-modal" class="hidden fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-4 backdrop-blur-md"><div class="bg-black w-full max-w-lg rounded-3xl overflow-hidden relative shadow-2xl border border-white/10"><button onclick="closeVideoModal()" class="absolute top-4 right-4 z-10 bg-white/10 hover:bg-red-600 text-white rounded-full p-2 backdrop-blur-md transition"><span class="material-symbols-outlined">close</span></button><div class="relative pb-[56.25%] h-0"><iframe id="youtube-frame" class="absolute top-0 left-0 w-full h-full" src="" frameborder="0" allowfullscreen></iframe></div></div></div>
+    <!-- 🎥 Video Modal Player -->
+    <div id="video-modal" class="hidden fixed inset-0 bg-black/90 z-[70] flex items-center justify-center p-4 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
+        <div class="bg-gray-900 w-full max-w-lg rounded-3xl overflow-hidden relative shadow-2xl border border-gray-700">
+            <div class="p-4 bg-gradient-to-r from-teal-900/80 to-gray-900 text-white flex items-center justify-between border-b border-gray-800">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-red-600/20 border border-red-500/30 text-red-500 flex items-center justify-center text-xl flex-shrink-0">
+                        <span class="material-symbols-outlined">play_circle</span>
+                    </div>
+                    <div>
+                        <h3 id="video-modal-title" class="text-sm font-bold text-white">ভিডিও গাইড</h3>
+                        <p id="video-modal-subtitle" class="text-[11px] text-teal-200">মুরগির পরিচর্যা ও ওষুধ প্রয়োগ নির্দেশিকা</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a id="video-external-link" href="#" target="_blank" rel="noopener noreferrer" class="p-2 text-gray-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl transition" title="গুগল ড্রাইভ বা নতুন ট্যাবে খুলুন">
+                        <span class="material-symbols-outlined text-lg">open_in_new</span>
+                    </a>
+                    <button onclick="closeVideoModal()" class="p-2 text-gray-300 hover:text-red-400 bg-white/10 hover:bg-white/20 rounded-xl transition" title="বন্ধ করুন">
+                        <span class="material-symbols-outlined text-lg">close</span>
+                    </button>
+                </div>
+            </div>
+            <div class="relative pb-[56.25%] h-0 bg-black">
+                <iframe id="youtube-frame" class="absolute top-0 left-0 w-full h-full" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            </div>
+            <div class="p-3 bg-gray-950/80 text-center flex items-center justify-between text-[11px] text-gray-400 border-t border-gray-800/60 px-4">
+                <span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm text-teal-400">info</span> সরাসরি ড্রাইভ ভিডিও প্লেয়ার</span>
+                <span id="video-breed-tag" class="bg-teal-900/50 text-teal-300 border border-teal-700/50 px-2 py-0.5 rounded-md font-bold text-[10px]">ব্রয়লার</span>
+            </div>
+        </div>
+    </div>
     <div id="toast" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-5 py-2 rounded-full text-sm z-50 shadow-lg"></div>
     <div id="pdf-overlay" class="hidden"><div id="pdf-content" style="padding:30px;font-family:'Noto Sans Bengali';background:white;color:black;"><div style="text-align:center;border-bottom:2px solid #00796B;padding-bottom:10px;margin-bottom:20px;"><h1 style="font-size:24px;color:#00796B;">আমার হিসাব</h1><p>পোল্ট্রি খামার রিপোর্ট</p></div><table style="width:100%;margin-bottom:20px;"><tr><td><h2 id="pdf-shipment-name"></h2><p id="pdf-shipment-date"></p></td><td style="text-align:right;"><span id="pdf-chicken-count"></span></td></tr></table><div style="display:flex;margin-bottom:20px;border:1px solid #ddd;"><div style="flex:1;background:#e0f7fa;padding:10px;border-right:1px solid #ddd;">আয়<br><b id="pdf-total-income"></b></div><div style="flex:1;background:#ffebee;padding:10px;border-right:1px solid #ddd;">ব্যয়<br><b id="pdf-total-expense"></b></div><div style="flex:1;background:#f1f8e9;padding:10px;">লাভ<br><b id="pdf-net-profit"></b></div></div><table class="pdf-table" style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f2f2f2;"><th>তারিখ</th><th>বিবরণ</th><th>ধরন</th><th>পরিমাণ</th></tr></thead><tbody id="pdf-table-body"></tbody></table><div style="margin-top:30px;text-align:right;font-size:10px;">Dev - Shuvo</div></div></div>
 
@@ -564,16 +594,73 @@
 
         function sharePDF() { db.ref(`users/${currentUser.uid}/shipments/${currentShipmentId}`).once('value',s=>{ const d=s.val(); document.getElementById('pdf-shipment-name').innerText=d.name; document.getElementById('pdf-shipment-date').innerText=d.startDate; document.getElementById('pdf-chicken-count').innerText="মুরগি: "+d.chickenCount; let ti=0,te=0,h=''; const all=[...Object.values(d.expenses||{}).map(x=>({...x,t:'ব্যয়'})),...Object.values(d.incomes||{}).map(x=>({...x,t:'আয়'}))].sort((a,b)=>new Date(a.date)-new Date(b.date)); all.forEach(x=>{ if(x.t==='ব্যয়')te+=+x.amount;else ti+=+x.amount; h+=`<tr><td>${x.date}</td><td>${x.type||x.description}</td><td>${x.t}</td><td style="text-align:right">${x.amount}</td></tr>`; }); document.getElementById('pdf-total-income').innerText="৳"+ti; document.getElementById('pdf-total-expense').innerText="৳"+te; document.getElementById('pdf-net-profit').innerText="৳"+(ti-te); document.getElementById('pdf-table-body').innerHTML=h; document.getElementById('pdf-overlay').style.display='block'; html2pdf().from(document.getElementById('pdf-content')).save().then(()=>document.getElementById('pdf-overlay').style.display='none'); }); }
 
-        function openVideoModal() { 
-            document.getElementById('video-modal').classList.remove('hidden'); 
-            let v = "https://drive.google.com/file/d/1ErsItnwlAp3miAbUdC-KTNR3OnHQmm5l/preview"; 
-            if (typeof currentBirdType !== 'undefined') {
-                if (currentBirdType === 'broiler') v = "https://drive.google.com/file/d/1ErsItnwlAp3miAbUdC-KTNR3OnHQmm5l/preview"; 
-                else if (currentBirdType === 'color_bird') v = "https://drive.google.com/file/d/1jmpt5J-nsFFLiHfTAglke4UpF_uhBYLe/preview"; 
+        function formatDriveEmbedUrl(url) {
+            if (!url) return "https://drive.google.com/file/d/1ErsItnwlAp3miAbUdC-KTNR3OnHQmm5l/preview";
+            if (url.includes('drive.google.com')) {
+                const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                if (match && match[1]) {
+                    return `https://drive.google.com/file/d/${match[1]}/preview`;
+                }
             }
-            document.getElementById('youtube-frame').src = v; 
+            if (url.includes('youtu.be/')) {
+                const id = url.split('youtu.be/')[1].split(/[?&]/)[0];
+                return `https://www.youtube.com/embed/${id}?autoplay=1`;
+            }
+            if (url.includes('youtube.com/watch')) {
+                const urlParams = new URLSearchParams(url.split('?')[1]);
+                const id = urlParams.get('v');
+                if (id) return `https://www.youtube.com/embed/${id}?autoplay=1`;
+            }
+            return url;
         }
-        function closeVideoModal() { document.getElementById('video-modal').classList.add('hidden'); document.getElementById('youtube-frame').src=""; }
+
+        function openVideoModal(breedName, videoUrl) { 
+            const modal = document.getElementById('video-modal');
+            const frame = document.getElementById('youtube-frame');
+            const titleEl = document.getElementById('video-modal-title');
+            const subtitleEl = document.getElementById('video-modal-subtitle');
+            const breedTagEl = document.getElementById('video-breed-tag');
+            const externalLinkEl = document.getElementById('video-external-link');
+
+            let rawUrl = videoUrl;
+            let displayBreed = breedName || (typeof currentBreedFilter !== 'undefined' ? currentBreedFilter : 'Broiler');
+            
+            // Map breed to Bangla names
+            const breedBangla = {
+                'Broiler': 'ব্রয়লার',
+                'ColorBird': 'কালার বার্ড',
+                'Sonali': 'সোনালি',
+                'Deshi': 'দেশি'
+            };
+            const banglaTitle = breedBangla[displayBreed] || displayBreed;
+
+            if (!rawUrl) {
+                if (typeof getBreedVideoUrl === 'function') {
+                    rawUrl = getBreedVideoUrl(displayBreed);
+                } else {
+                    rawUrl = "https://drive.google.com/file/d/1ErsItnwlAp3miAbUdC-KTNR3OnHQmm5l/preview";
+                }
+            }
+
+            const embedUrl = formatDriveEmbedUrl(rawUrl);
+
+            if (titleEl) titleEl.innerText = `${banglaTitle} - ভিডিও গাইড`;
+            if (subtitleEl) subtitleEl.innerText = `${banglaTitle} মুরগির পরিচর্যা ও চিকিৎসা নির্দেশিকা`;
+            if (breedTagEl) breedTagEl.innerText = banglaTitle;
+            if (externalLinkEl) {
+                externalLinkEl.href = rawUrl || embedUrl;
+            }
+
+            if (frame) frame.src = embedUrl;
+            if (modal) modal.classList.remove('hidden'); 
+        }
+
+        function closeVideoModal() { 
+            const modal = document.getElementById('video-modal');
+            const frame = document.getElementById('youtube-frame');
+            if (modal) modal.classList.add('hidden'); 
+            if (frame) frame.src = ""; 
+        }
 
         navigateToTab('dashboard');
     </script>
