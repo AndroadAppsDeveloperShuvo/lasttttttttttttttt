@@ -127,6 +127,29 @@
             <div class="p-5 space-y-6 pb-28">
 
                 <div id="dashboard-summary" class="transform transition hover:scale-[1.02]"></div>
+
+                <!-- স্মার্ট ক্যালকুলেটর ও কুইক টুলস -->
+                <div>
+                    <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">স্মার্ট টুলস ও ক্যালকুলেটর</h2>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="openFeedWaterPage()" class="bg-white dark:bg-gray-800 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-3 text-left hover:shadow-md transition active:scale-98">
+                            <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-xl shrink-0">🥣</div>
+                            <div>
+                                <h3 class="font-bold text-gray-800 dark:text-gray-100 text-xs sm:text-sm">খাদ্য ও পানি মাপক</h3>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-400">বয়সভিত্তিক চাহিদা</p>
+                            </div>
+                        </button>
+
+                        <button onclick="openCostProjectorPage()" class="bg-white dark:bg-gray-800 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-3 text-left hover:shadow-md transition active:scale-98">
+                            <div class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-xl shrink-0">💰</div>
+                            <div>
+                                <h3 class="font-bold text-gray-800 dark:text-gray-100 text-xs sm:text-sm">উৎপাদন খরচ ও লাভ</h3>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-400">ব্রেক-ইভেন রেট</p>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
                 <div>
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">সাম্প্রতিক চালান</h2>
@@ -159,9 +182,23 @@
                 </div>
 
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                    <h2 class="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-700/50">টুলস</h2>
+                    <h2 class="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-700/50">টুলস ও ক্যালকুলেটর</h2>
+                    <button onclick="openFeedWaterPage()" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition border-b border-gray-100 dark:border-gray-700">
+                        <span class="flex items-center gap-3 font-medium dark:text-gray-200">
+                            <span class="material-symbols-outlined text-amber-500">restaurant</span> 
+                            খাদ্য ও পানি পরিমাপক
+                        </span> 
+                        <span class="material-symbols-outlined text-gray-400">chevron_right</span>
+                    </button>
+                    <button onclick="openCostProjectorPage()" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition border-b border-gray-100 dark:border-gray-700">
+                        <span class="flex items-center gap-3 font-medium dark:text-gray-200">
+                            <span class="material-symbols-outlined text-purple-600">query_stats</span> 
+                            উৎপাদন খরচ ও লাভ প্রজেক্টর
+                        </span> 
+                        <span class="material-symbols-outlined text-gray-400">chevron_right</span>
+                    </button>
+                    <button onclick="navigate('fcr-calculator-page')" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition border-b border-gray-100 dark:border-gray-700"><span class="flex items-center gap-3 font-medium dark:text-gray-200"><span class="material-symbols-outlined text-indigo-500">calculate</span> FCR ক্যালকুলেটর</span> <span class="material-symbols-outlined text-gray-400">chevron_right</span></button>
                     <button onclick="navigate('due-list-page')" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition border-b border-gray-100 dark:border-gray-700"><span class="flex items-center gap-3 font-medium dark:text-gray-200"><span class="material-symbols-outlined text-orange-500">account_balance_wallet</span> বাকির খাতা</span> <span class="material-symbols-outlined text-gray-400">chevron_right</span></button>
-                    <button onclick="navigate('fcr-calculator-page')" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition border-b border-gray-100 dark:border-gray-700"><span class="flex items-center gap-3 font-medium dark:text-gray-200"><span class="material-symbols-outlined text-purple-500">calculate</span> FCR ক্যালকুলেটর</span> <span class="material-symbols-outlined text-gray-400">chevron_right</span></button>
                     <button onclick="openStockPage()" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition border-b border-gray-100 dark:border-gray-700">
                         <span class="flex items-center gap-3 font-medium dark:text-gray-200">
                             <span class="material-symbols-outlined text-green-600">inventory</span> 
@@ -581,6 +618,8 @@
     <script src="stock.js"></script>
     <script src="daily_report.js"></script>
     <script src="medicine.js"></script>
+    <script src="feed_water_meter.js"></script>
+    <script src="cost_projector.js"></script>
     
     <script>
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); }); }
