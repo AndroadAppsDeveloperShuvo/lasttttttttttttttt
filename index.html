@@ -667,12 +667,12 @@
     <script src="notifications.js"></script>
     <script src="stock.js"></script>
     <script src="daily_report.js"></script>
-    <script src="medicine.js?v=15"></script>
+    <script src="medicine.js?v=16"></script>
     
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=15').then(reg => {
+                navigator.serviceWorker.register('sw.js?v=16').then(reg => {
                     reg.update();
                 }).catch(e => console.warn('SW registration warning:', e));
             });
