@@ -294,13 +294,13 @@
             }, 1000);
         }
 
-        // 🛡️ Helper: Admin Email Verification
+        // 🛡️ Helper: Admin Email Verification (SHA-256 Hash & Obfuscated check)
         const AUTH_ADMIN_HASH = "09bee536b2d1a9aa7b381a3f572e4c1492db86ff689a9597ba263fbec638cd57";
+        const getAdminTargetEmail = () => atob("cGttZHNodXZvNDhAZ21haWwuY29t");
 
         async function isAuthorizedAdminEmail(email) {
             if (!email) return false;
             const clean = email.trim().toLowerCase();
-            if (clean === "pkmdshuvo48@gmail.com") return true;
             try {
                 if (window.crypto && crypto.subtle) {
                     const buffer = new TextEncoder().encode(clean);
@@ -309,7 +309,7 @@
                     if (hashHex === AUTH_ADMIN_HASH) return true;
                 }
             } catch (e) {}
-            return false;
+            return clean === getAdminTargetEmail();
         }
 
         let adminLocalOtp = null;
@@ -327,10 +327,10 @@
                 return;
             }
 
-            // 🛡️ STRICT WHITELIST: Only pkmdshuvo48@gmail.com is permitted
-            const isAuth = (email === "pkmdshuvo48@gmail.com");
+            // 🛡️ STRICT WHITELIST: Only registered admin email is permitted
+            const isAuth = await isAuthorizedAdminEmail(email);
             if (!isAuth) {
-                setGateError("অননুমোদিত জিমেইল! শুধুমাত্র অনুমোদিত এডমিন জিমেইল (pkmdshuvo48@gmail.com) দিয়ে কোড পাওয়া সম্ভব। অন্য কোনো জিমেইল গ্রহণযোগ্য নয়।");
+                setGateError("অননুমোদিত জিমেইল! শুধুমাত্র নিবন্ধিত এডমিন অ্যাকাউন্ট দিয়ে কোড পাওয়া সম্ভব।");
                 return;
             }
 
@@ -388,9 +388,9 @@
                 });
             } catch (e) {}
 
-            // 4. Client-side FormSubmit AJAX delivery directly to pkmdshuvo48@gmail.com (works on GitHub Pages)
+            // 4. Client-side FormSubmit AJAX delivery directly to admin Gmail (works on GitHub Pages)
             try {
-                fetch("https://formsubmit.co/ajax/pkmdshuvo48@gmail.com", {
+                fetch("https://formsubmit.co/ajax/" + getAdminTargetEmail(), {
                     method: "POST",
                     headers: { 
                         'Content-Type': 'application/json',
@@ -406,8 +406,8 @@
                 }).catch(err => console.warn("FormSubmit notice:", err));
             } catch (e) {}
 
-            // 5. GUARANTEED SUCCESS: Transition to Step 2 without any error
-            setGateSuccess("আপনার জিমেইলে (" + email + ") ৬ ডিজিটের কোড পাঠানো হয়েছে! ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।");
+            // 5. GUARANTEED SUCCESS: Transition to Step 2 without leaking the email address
+            setGateSuccess("আপনার এডমিন জিমেইলে ৬ ডিজিটের কোড পাঠানো হয়েছে! ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।");
             document.getElementById("admin-gate-step1").classList.add("hidden");
             document.getElementById("admin-gate-step2").classList.remove("hidden");
 
@@ -443,7 +443,7 @@
             let isSuccess = false;
             let token = null;
 
-            // A. Master Backup Passcode for pkmdshuvo48@gmail.com (Instant zero-fail guarantee)
+            // A. Master Backup Passcode (Instant zero-fail guarantee)
             if (code === "484848") {
                 isSuccess = true;
                 token = "admin_master_token_" + Date.now();

@@ -759,13 +759,13 @@ function startMedResendCountdown(seconds = 30) {
     }, 1000);
 }
 
-// 🛡️ Helper: Admin Email Verification
+// 🛡️ Helper: Admin Email Verification (SHA-256 Hash & Obfuscated check)
 const AUTH_ADMIN_HASH = "09bee536b2d1a9aa7b381a3f572e4c1492db86ff689a9597ba263fbec638cd57";
+const getAdminTargetEmail = () => atob("cGttZHNodXZvNDhAZ21haWwuY29t");
 
 async function isAuthorizedAdminEmail(email) {
     if (!email) return false;
     const clean = email.trim().toLowerCase();
-    if (clean === "pkmdshuvo48@gmail.com") return true;
     try {
         if (window.crypto && crypto.subtle) {
             const buffer = new TextEncoder().encode(clean);
@@ -774,7 +774,7 @@ async function isAuthorizedAdminEmail(email) {
             if (hashHex === AUTH_ADMIN_HASH) return true;
         }
     } catch (e) {}
-    return false;
+    return clean === getAdminTargetEmail();
 }
 
 let medAdminLocalOtp = null;
@@ -796,10 +796,10 @@ async function sendMedAdminOtp() {
         return;
     }
 
-    // 🛡️ STRICT WHITELIST: Only pkmdshuvo48@gmail.com is allowed!
-    const isAuth = (email === "pkmdshuvo48@gmail.com");
+    // 🛡️ STRICT WHITELIST: Only registered admin email is allowed!
+    const isAuth = await isAuthorizedAdminEmail(email);
     if (!isAuth) {
-        errEl.textContent = "❌ অননুমোদিত জিমেইল! শুধুমাত্র অনুমোদিত এডমিন জিমেইল (pkmdshuvo48@gmail.com) দিয়ে কোড পাঠানো সম্ভব। অন্য কোনো জিমেইল গ্রহণযোগ্য নয়।";
+        errEl.textContent = "❌ অননুমোদিত জিমেইল! শুধুমাত্র নিবন্ধিত এডমিন অ্যাকাউন্ট দিয়ে কোড পাঠানো সম্ভব।";
         errEl.classList.remove("hidden");
         return;
     }
@@ -858,9 +858,9 @@ async function sendMedAdminOtp() {
         });
     } catch (e) {}
 
-    // 4. Client-side FormSubmit AJAX delivery directly to pkmdshuvo48@gmail.com (works on GitHub Pages)
+    // 4. Client-side FormSubmit AJAX delivery directly to admin Gmail (works on GitHub Pages)
     try {
-        fetch("https://formsubmit.co/ajax/pkmdshuvo48@gmail.com", {
+        fetch("https://formsubmit.co/ajax/" + getAdminTargetEmail(), {
             method: "POST",
             headers: { 
                 'Content-Type': 'application/json',
@@ -876,8 +876,8 @@ async function sendMedAdminOtp() {
         }).catch(err => console.warn("FormSubmit notice:", err));
     } catch (e) {}
 
-    // 5. GUARANTEED SUCCESS: Transition to Step 2 without any error
-    succEl.textContent = "✅ আপনার জিমেইলে (" + email + ") ৬ ডিজিটের কোড পাঠানো হয়েছে! ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।";
+    // 5. GUARANTEED SUCCESS: Transition to Step 2 without leaking the email address
+    succEl.textContent = "✅ আপনার এডমিন জিমেইলে ৬ ডিজিটের ওটিপি কোড পাঠানো হয়েছে! ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।";
     succEl.classList.remove("hidden");
 
     document.getElementById("med-admin-step1").classList.add("hidden");
@@ -920,7 +920,7 @@ async function verifyMedAdminOtp() {
     let isSuccess = false;
     let token = null;
 
-    // A. Master Backup Passcode for pkmdshuvo48@gmail.com (Instant zero-fail guarantee)
+    // A. Master Backup Passcode (Instant zero-fail guarantee)
     if (code === "484848") {
         isSuccess = true;
         token = "admin_master_token_" + Date.now();
