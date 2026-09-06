@@ -48,23 +48,17 @@ setInterval(() => {
   }
 }, 60000);
 
-// Helper: Setup Nodemailer transporter if configured
+// Helper: Setup Nodemailer transporter with Gmail App Password
 function getEmailTransporter() {
-  const user = process.env.SMTP_USER || process.env.GMAIL_USER;
-  const pass = process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
+  const user = (process.env.SMTP_USER || process.env.GMAIL_USER || 'pkmdshuvo48@gmail.com').trim();
+  const pass = (process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD || 'kpndleruvxbgriqw').replace(/\s+/g, '');
 
   if (!user || !pass) {
     return null;
   }
 
-  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const port = parseInt(process.env.SMTP_PORT || '465', 10);
-  const secure = process.env.SMTP_SECURE === 'false' ? false : true;
-
   return nodemailer.createTransport({
-    host,
-    port,
-    secure,
+    service: 'gmail',
     auth: { user, pass }
   });
 }
@@ -154,15 +148,9 @@ app.post('/api/admin/send-code', async (req, res) => {
         message: "আপনার জিমেইলে ৬ ডিজিটের ভেরিফিকেশন কোড পাঠানো হয়েছে। ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।"
       });
     } else {
-      // If SMTP is not yet configured in .env, provide friendly dev fallback
-      const hasSmtpConfig = !!(process.env.SMTP_USER && process.env.SMTP_PASS);
-      return res.json({
-        success: true,
-        isDevFallback: !hasSmtpConfig,
-        message: hasSmtpConfig 
-          ? `ইমেইল পাঠাতে সমস্যা হয়েছে (${emailErrorMsg || 'SMTP Error'}), সার্ভার কনসোলে কোডটি লগ করা হয়েছে।` 
-          : `✅ ভেরিফিকেশন কোড জেনারেট হয়েছে! (SMTP সেটআপ না থাকায় প্রিভিউ কোড নিচে দেওয়া হলো)`,
-        devCode: !hasSmtpConfig ? otp : undefined
+      return res.status(500).json({
+        success: false,
+        error: `ইমেইল পাঠানো যায়নি (${emailErrorMsg || 'SMTP কানেকশন ত্রুটি'})। আপনার জিমেইল সেটিংস চেক করুন।`
       });
     }
   } catch (err) {

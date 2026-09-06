@@ -1,6 +1,6 @@
 // 🌐 Network First Strategy (নিরাপদ অফলাইন সিস্টেম)
 
-const CACHE_NAME = 'khamar-app-v11';
+const CACHE_NAME = 'khamar-app-v12';
 const urlsToCache = [
     './', 
     './index.html', 

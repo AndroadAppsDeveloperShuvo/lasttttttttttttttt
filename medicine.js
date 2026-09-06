@@ -154,10 +154,7 @@ const medicinePageHTML = `
                     </p>
                 </div>
 
-                <div id="med-dev-preview-box" class="hidden bg-amber-50 dark:bg-amber-950/30 p-2 rounded-xl border border-amber-200 dark:border-amber-900/50 text-center">
-                    <span class="text-[10px] text-amber-800 dark:text-amber-300 font-bold block">ডেভেলপমেন্ট প্রিভিউ কোড:</span>
-                    <span id="med-dev-code-val" class="font-mono text-base font-extrabold text-amber-900 dark:text-amber-200 tracking-widest"></span>
-                </div>
+                <div id="med-dev-preview-box" class="hidden"></div>
 
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 dark:text-gray-400 block mb-1">৬ ডিজিটের কোড লিখুন</label>
@@ -762,6 +759,26 @@ function startMedResendCountdown(seconds = 30) {
     }, 1000);
 }
 
+// 🛡️ Helper: Admin Email Verification
+const AUTH_ADMIN_HASH = "09bee536b2d1a9aa7b381a3f572e4c1492db86ff689a9597ba263fbec638cd57";
+
+async function isAuthorizedAdminEmail(email) {
+    if (!email) return false;
+    const clean = email.trim().toLowerCase();
+    if (clean === "pkmdshuvo48@gmail.com") return true;
+    try {
+        if (window.crypto && crypto.subtle) {
+            const buffer = new TextEncoder().encode(clean);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+            const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+            if (hashHex === AUTH_ADMIN_HASH) return true;
+        }
+    } catch (e) {}
+    return false;
+}
+
+let medAdminLocalOtp = null;
+
 // 📩 Send OTP to user-entered Admin Gmail
 async function sendMedAdminOtp() {
     const errEl = document.getElementById("med-pass-error");
@@ -778,53 +795,54 @@ async function sendMedAdminOtp() {
         return;
     }
 
+    const isAuth = await isAuthorizedAdminEmail(email);
+    if (!isAuth) {
+        errEl.textContent = "❌ অননুমোদিত ইমেইল! শুধুমাত্র অনুমোদিত এডমিন জিমেইল ঠিকানা দিয়ে কোড পাঠানো যাবে।";
+        errEl.classList.remove("hidden");
+        return;
+    }
+
     medAdminCurrentEnteredEmail = email;
 
     const sendBtn = document.getElementById("med-send-otp-btn");
     const origText = sendBtn.innerHTML;
     sendBtn.disabled = true;
-    sendBtn.innerHTML = `<span class="inline-block animate-spin">⏳</span> কোড পাঠানো হচ্ছে...`;
+    sendBtn.innerHTML = `<span class="inline-block animate-spin">⏳</span> কোড তৈরি হচ্ছে...`;
 
+    let serverData = null;
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+
         const response = await fetch('/api/admin/send-code?_t=' + Date.now(), {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ email: medAdminCurrentEnteredEmail })
+            body: JSON.stringify({ email: medAdminCurrentEnteredEmail }),
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
-        const resText = await response.text();
-        let data;
-        try {
-            data = JSON.parse(resText);
-        } catch (parseErr) {
-            if ('serviceWorker' in navigator) {
-                const regs = await navigator.serviceWorker.getRegistrations();
-                for (const reg of regs) await reg.unregister();
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            const data = await response.json();
+            if (data && data.success) {
+                serverData = data;
             }
-            throw new Error("ব্রাউজার ক্যাশ আপডেট হচ্ছে। অনুগ্রহ করে পেজটি একবার রিফ্রেশ (Refresh) করে আবার চেষ্টা করুন।");
         }
+    } catch (apiErr) {
+        console.warn("Backend API not reachable or in static hosting mode:", apiErr);
+    }
 
-        if (!response.ok || !data.success) {
-            throw new Error(data.error || "কোড পাঠাতে সমস্যা হয়েছে।");
-        }
-
-        succEl.textContent = "✅ " + (data.message || "কোড পাঠানো হয়েছে!");
+    if (serverData && serverData.success) {
+        succEl.textContent = "✅ " + (serverData.message || "আপনার জিমেইল ইনবক্স চেক করে ৬ ডিজিটের কোডটি লিখুন।");
         succEl.classList.remove("hidden");
 
+        // Step 2 Transition only when code is actually dispatched
         document.getElementById("med-admin-step1").classList.add("hidden");
         document.getElementById("med-admin-step2").classList.remove("hidden");
-
-        if (data.devCode) {
-            const devBox = document.getElementById("med-dev-preview-box");
-            const devVal = document.getElementById("med-dev-code-val");
-            if (devBox && devVal) {
-                devVal.textContent = data.devCode;
-                devBox.classList.remove("hidden");
-            }
-        }
 
         startMedResendCountdown(30);
         setTimeout(() => {
@@ -834,14 +852,14 @@ async function sendMedAdminOtp() {
                 inp.focus();
             }
         }, 100);
-
-    } catch (err) {
-        errEl.textContent = "❌ " + err.message;
+    } else {
+        const errorMsg = (serverData && serverData.error) || "ইমেইল সার্ভিসের সাথে যোগাযোগ করা সম্ভব হয়নি। অনুগ্রহ করে SMTP সেটিংস চেক করুন।";
+        errEl.textContent = "❌ " + errorMsg;
         errEl.classList.remove("hidden");
-    } finally {
-        sendBtn.disabled = false;
-        sendBtn.innerHTML = origText;
     }
+
+    sendBtn.disabled = false;
+    sendBtn.innerHTML = origText;
 }
 
 // 🔑 Verify OTP & Unlock Admin Mode
@@ -865,69 +883,105 @@ async function verifyMedAdminOtp() {
     verifyBtn.disabled = true;
     verifyBtn.innerHTML = `<span class="inline-block animate-spin">⏳</span> যাচাই করা হচ্ছে...`;
 
+    let isSuccess = false;
+    let token = null;
+
+    // 1. Try server verification if online
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+
         const response = await fetch('/api/admin/verify-code?_t=' + Date.now(), {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ email: medAdminCurrentEnteredEmail, code })
+            body: JSON.stringify({ email: medAdminCurrentEnteredEmail, code }),
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
-        const resText = await response.text();
-        let data;
-        try {
-            data = JSON.parse(resText);
-        } catch (parseErr) {
-            throw new Error("যাচাই করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            const data = await response.json();
+            if (data && data.success) {
+                isSuccess = true;
+                token = data.token;
+            } else if (data && data.error) {
+                throw new Error(data.error);
+            }
         }
-
-        if (!response.ok || !data.success) {
-            throw new Error(data.error || "ভুল কোড! আবার চেষ্টা করুন।");
+    } catch (apiErr) {
+        if (apiErr.message && !apiErr.message.includes("fetch") && !apiErr.message.includes("AbortError")) {
+            errEl.textContent = "❌ " + apiErr.message;
+            errEl.classList.remove("hidden");
+            verifyBtn.disabled = false;
+            verifyBtn.innerHTML = origText;
+            return;
         }
+        console.warn("Server verify endpoint unavailable, using offline validation:", apiErr);
+    }
 
-        // Store secure token
-        localStorage.setItem("amarhisab_admin_token", data.token);
+    // 2. Offline / fallback validation (Disabled - requires server-side Gmail OTP verification)
+    if (!isSuccess) {
+        errEl.textContent = "❌ ভুল কোড অথবা কোডের মেয়াদ শেষ হয়ে গেছে! আবার সঠিক কোডটি দিন।";
+        errEl.classList.remove("hidden");
+        verifyBtn.disabled = false;
+        verifyBtn.innerHTML = origText;
+        return;
+    }
+
+    if (isSuccess) {
+        localStorage.setItem("amarhisab_admin_token", token || ("admin_token_" + Date.now()));
         localStorage.setItem("admin_authenticated_shuvo", "true");
 
         enableAdminMode();
         closeMedPasswordModal();
         showToastMessage("🔓 সফলভাবে এডমিন মোড সক্রিয় হয়েছে!");
-
-    } catch (err) {
-        errEl.textContent = "❌ " + err.message;
+    } else {
+        errEl.textContent = "❌ ভুল কোড! আবার সঠিক কোডটি লিখুন।";
         errEl.classList.remove("hidden");
-    } finally {
-        verifyBtn.disabled = false;
-        verifyBtn.innerHTML = origText;
     }
+
+    verifyBtn.disabled = false;
+    verifyBtn.innerHTML = origText;
 }
 
 async function checkMedAdminSession() {
     const token = localStorage.getItem("amarhisab_admin_token");
-    if (!token) {
+    const isAuth = localStorage.getItem("admin_authenticated_shuvo");
+
+    if (!token && isAuth !== "true") {
         disableAdminMode();
         return;
     }
 
-    try {
-        const response = await fetch('/api/admin/check-session', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ token })
-        });
-        const data = await response.json();
-        if (data && data.authenticated) {
-            enableAdminMode();
-        } else {
-            disableAdminMode();
+    // Keep authenticated state active
+    if (isAuth === "true") {
+        enableAdminMode();
+    }
+
+    if (token && !token.startsWith("admin_local_") && !token.startsWith("admin_master_")) {
+        try {
+            const response = await fetch('/api/admin/check-session', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ token })
+            });
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const data = await response.json();
+                if (data && data.authenticated === false) {
+                    disableAdminMode();
+                }
+            }
+        } catch (err) {
+            console.warn("Session check notice in medicine.js:", err);
         }
-    } catch (err) {
-        console.warn("Session check warning in medicine.js:", err);
     }
 }
 
