@@ -1,12 +1,12 @@
 // 🌐 Network First Strategy (নিরাপদ অফলাইন সিস্টেম)
 
-const CACHE_NAME = 'khamar-app-v12';
+const CACHE_NAME = 'khamar-app-v15';
 const urlsToCache = [
     './', 
     './index.html', 
     './stock.js', 
     './daily_report.js',
-    './medicine.js',
+    './medicine.js?v=15',
     './notifications.js',
     './admin.html',
     './manifest.json',
@@ -37,7 +37,7 @@ self.addEventListener('fetch', event => {
     const url = new URL(req.url);
 
     // ⛔ API এবং নন-GET রিকোয়েস্ট কোনো অবস্থাতেই সার্ভিস ওয়ার্কার ধরবে না
-    if (req.method !== 'GET' || url.pathname.startsWith('/api/') || url.search.includes('_t=')) {
+    if (req.method !== 'GET' || url.pathname.includes('/api/') || url.search.includes('_t=')) {
         return;
     }
 

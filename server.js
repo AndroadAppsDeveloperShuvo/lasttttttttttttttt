@@ -10,6 +10,17 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 
+// CORS & Preflight Middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 // Middleware
 app.use(express.json());
 
@@ -23,8 +34,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files from the root directory
-app.use(express.static(__dirname));
+// Serve static files from the root directory with cache control for scripts
+app.use(express.static(__dirname, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js') || filePath.endsWith('.html') || filePath.endsWith('.json')) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    }
+  }
+}));
 
 // ==========================================
 // 🔐 SECURE ADMIN EMAIL & OTP MANAGEMENT
@@ -48,8 +65,12 @@ setInterval(() => {
   }
 }, 60000);
 
-// Helper: Setup Nodemailer transporter with Gmail App Password
+// Helper: Setup Nodemailer transporter with connection pool
+let cachedEmailTransporter = null;
 function getEmailTransporter() {
+  if (cachedEmailTransporter) {
+    return cachedEmailTransporter;
+  }
   const user = (process.env.SMTP_USER || process.env.GMAIL_USER || 'pkmdshuvo48@gmail.com').trim();
   const pass = (process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD || 'kpndleruvxbgriqw').replace(/\s+/g, '');
 
@@ -57,10 +78,13 @@ function getEmailTransporter() {
     return null;
   }
 
-  return nodemailer.createTransport({
+  cachedEmailTransporter = nodemailer.createTransport({
     service: 'gmail',
+    pool: true,
+    maxConnections: 3,
     auth: { user, pass }
   });
+  return cachedEmailTransporter;
 }
 
 // 📩 1. Send OTP to Admin Email

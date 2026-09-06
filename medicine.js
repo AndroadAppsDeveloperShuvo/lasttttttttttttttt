@@ -807,12 +807,13 @@ async function sendMedAdminOtp() {
     const sendBtn = document.getElementById("med-send-otp-btn");
     const origText = sendBtn.innerHTML;
     sendBtn.disabled = true;
-    sendBtn.innerHTML = `<span class="inline-block animate-spin">⏳</span> কোড তৈরি হচ্ছে...`;
+    sendBtn.innerHTML = `<span class="inline-block animate-spin">⏳</span> জিমেইলে ওটিপি পাঠানো হচ্ছে...`;
 
     let serverData = null;
+    let fetchError = null;
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
 
         const response = await fetch('/api/admin/send-code?_t=' + Date.now(), {
             method: 'POST',
@@ -827,13 +828,14 @@ async function sendMedAdminOtp() {
 
         const contentType = response.headers.get('content-type') || '';
         if (contentType.includes('application/json')) {
-            const data = await response.json();
-            if (data && data.success) {
-                serverData = data;
-            }
+            serverData = await response.json();
+        } else {
+            const txt = await response.text();
+            console.warn("Unexpected non-JSON response from server:", txt.slice(0, 150));
         }
     } catch (apiErr) {
-        console.warn("Backend API not reachable or in static hosting mode:", apiErr);
+        fetchError = apiErr;
+        console.warn("Backend API send-code error:", apiErr);
     }
 
     if (serverData && serverData.success) {
@@ -853,7 +855,14 @@ async function sendMedAdminOtp() {
             }
         }, 100);
     } else {
-        const errorMsg = (serverData && serverData.error) || "ইমেইল সার্ভিসের সাথে যোগাযোগ করা সম্ভব হয়নি। অনুগ্রহ করে SMTP সেটিংস চেক করুন।";
+        let errorMsg = (serverData && serverData.error);
+        if (!errorMsg) {
+            if (fetchError && fetchError.name === 'AbortError') {
+                errorMsg = "ইন্টারনেট সংযোগ ধীরগতির কারণে সময় বেশি লেগেছে। অনুগ্রহ করে আবার চেষ্টা করুন।";
+            } else {
+                errorMsg = "ইমেইল সার্ভিসের সাথে যোগাযোগ করা যায়নি। ইন্টারনেট কানেকশন চেক করে আবার চেষ্টা করুন।";
+            }
+        }
         errEl.textContent = "❌ " + errorMsg;
         errEl.classList.remove("hidden");
     }
@@ -885,11 +894,12 @@ async function verifyMedAdminOtp() {
 
     let isSuccess = false;
     let token = null;
+    let verifyError = null;
 
-    // 1. Try server verification if online
+    // 1. Server verification
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
         const response = await fetch('/api/admin/verify-code?_t=' + Date.now(), {
             method: 'POST',
@@ -909,23 +919,18 @@ async function verifyMedAdminOtp() {
                 isSuccess = true;
                 token = data.token;
             } else if (data && data.error) {
-                throw new Error(data.error);
+                verifyError = data.error;
             }
         }
     } catch (apiErr) {
-        if (apiErr.message && !apiErr.message.includes("fetch") && !apiErr.message.includes("AbortError")) {
-            errEl.textContent = "❌ " + apiErr.message;
-            errEl.classList.remove("hidden");
-            verifyBtn.disabled = false;
-            verifyBtn.innerHTML = origText;
-            return;
+        if (apiErr.name === 'AbortError') {
+            verifyError = "যাচাইকরণে সময় বেশি লেগেছে। অনুগ্রহ করে আবার চেষ্টা করুন।";
         }
-        console.warn("Server verify endpoint unavailable, using offline validation:", apiErr);
+        console.warn("Server verify endpoint error:", apiErr);
     }
 
-    // 2. Offline / fallback validation (Disabled - requires server-side Gmail OTP verification)
     if (!isSuccess) {
-        errEl.textContent = "❌ ভুল কোড অথবা কোডের মেয়াদ শেষ হয়ে গেছে! আবার সঠিক কোডটি দিন।";
+        errEl.textContent = "❌ " + (verifyError || "ভুল কোড অথবা কোডের মেয়াদ শেষ হয়ে গেছে! আবার সঠিক কোডটি দিন।");
         errEl.classList.remove("hidden");
         verifyBtn.disabled = false;
         verifyBtn.innerHTML = origText;
