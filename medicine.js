@@ -117,24 +117,64 @@ const medicinePageHTML = `
         </div>
     </div>
 
-    <!-- 🔐 In-App Admin Password Verification Modal -->
+    <!-- 🔐 In-App Admin Gmail OTP Verification Modal -->
     <div id="med-password-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
         <div class="bg-white dark:bg-gray-800 w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-gray-100 dark:border-gray-700 text-center space-y-4 relative">
             <button onclick="closeMedPasswordModal()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition">
                 <span class="material-symbols-outlined">close</span>
             </button>
-            <div class="w-14 h-14 bg-red-50 dark:bg-red-950/20 rounded-full flex items-center justify-center mx-auto">
-                <span class="material-symbols-outlined text-2xl text-red-500">lock</span>
+            <div class="w-14 h-14 bg-teal-50 dark:bg-teal-950/20 text-teal-600 dark:text-teal-400 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <span class="material-symbols-outlined text-2xl">mark_email_read</span>
             </div>
             <div>
-                <h2 class="text-base font-bold text-gray-800 dark:text-white">এডমিন পাসওয়ার্ড যাচাইকরণ</h2>
-                <p class="text-xs text-gray-400 mt-1">ঔষধ ও ভ্যাকসিন তথ্য এডিট করতে পাসওয়ার্ড প্রদান করুন</p>
+                <h2 class="text-base font-bold text-gray-800 dark:text-white">এডমিন নিরাপত্তা যাচাইকরণ</h2>
+                <p class="text-xs text-gray-400 mt-1">শুধুমাত্র এডমিন জিমেইল ও ওটিপি কোড দিয়ে লগইন সম্ভব</p>
             </div>
-            <div class="space-y-3">
-                <input type="password" id="med-admin-pass" placeholder="পাসওয়ার্ড লিখুন" class="w-full p-3 text-center border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl font-bold tracking-wider text-xs focus:outline-none focus:ring-2 focus:ring-teal-500">
-                <button onclick="verifyMedAdminPassword()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl text-xs transition duration-200 shadow-md active:scale-95">ভেরিফাই করুন</button>
+
+            <!-- Step 1: Send OTP -->
+            <div id="med-admin-step1" class="space-y-3 text-left">
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 dark:text-gray-400 block mb-1">অনুমোদিত এডমিন জিমেইল</label>
+                    <div class="relative">
+                        <input type="email" id="med-admin-email" value="pkmdshuvo48@gmail.com" readonly class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-teal-300 border border-gray-200 rounded-xl font-bold text-xs focus:outline-none cursor-not-allowed">
+                        <span class="material-symbols-outlined absolute right-3 top-2.5 text-teal-600 dark:text-teal-400 text-sm">lock</span>
+                    </div>
+                </div>
+                <button id="med-send-otp-btn" onclick="sendMedAdminOtp()" class="w-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold py-2.5 rounded-xl text-xs transition duration-200 shadow-md flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-sm">send</span>
+                    <span>ভেরিফিকেশন কোড পাঠান</span>
+                </button>
             </div>
-            <p id="med-pass-error" class="text-red-500 font-bold text-xs hidden">❌ ভুল পাসওয়ার্ড! আবার চেষ্টা করুন।</p>
+
+            <!-- Step 2: Verify OTP -->
+            <div id="med-admin-step2" class="space-y-3 text-left hidden">
+                <div class="bg-teal-50 dark:bg-teal-950/30 p-2 rounded-xl border border-teal-100 dark:border-teal-900/50">
+                    <p class="text-[11px] text-teal-800 dark:text-teal-300 font-semibold leading-relaxed">
+                        📩 <span class="font-bold">pkmdshuvo48@gmail.com</span> এ ৬ ডিজিটের কোড পাঠানো হয়েছে।
+                    </p>
+                </div>
+
+                <div id="med-dev-preview-box" class="hidden bg-amber-50 dark:bg-amber-950/30 p-2 rounded-xl border border-amber-200 dark:border-amber-900/50 text-center">
+                    <span class="text-[10px] text-amber-800 dark:text-amber-300 font-bold block">ডেভেলপমেন্ট প্রিভিউ কোড:</span>
+                    <span id="med-dev-code-val" class="font-mono text-base font-extrabold text-amber-900 dark:text-amber-200 tracking-widest"></span>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 dark:text-gray-400 block mb-1">৬ ডিজিটের কোড লিখুন</label>
+                    <input type="text" id="med-admin-otp-input" maxlength="6" inputmode="numeric" placeholder="------" class="w-full p-2.5 text-center border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl font-bold tracking-[0.4em] text-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                </div>
+                <button id="med-verify-otp-btn" onclick="verifyMedAdminOtp()" class="w-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold py-2.5 rounded-xl text-xs transition duration-200 shadow-md flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-sm">check_circle</span>
+                    <span>কোড যাচাই ও মোড অন করুন</span>
+                </button>
+                <div class="flex justify-between items-center text-[10px] text-gray-500 dark:text-gray-400 pt-1">
+                    <button id="med-resend-btn" onclick="sendMedAdminOtp()" class="text-teal-600 dark:text-teal-400 hover:underline font-bold" disabled>পুনরায় পাঠান</button>
+                    <span id="med-resend-timer"></span>
+                </div>
+            </div>
+
+            <p id="med-pass-error" class="text-red-500 font-bold text-xs hidden"></p>
+            <p id="med-pass-success" class="text-emerald-600 dark:text-emerald-400 font-bold text-xs hidden"></p>
         </div>
     </div>
 
@@ -598,10 +638,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // চেক করুন লোকাল স্টোরেজে অলরেডি অথেন্টিকেট আছে কিনা
-        if (localStorage.getItem("admin_authenticated_shuvo") === "true") {
-            enableAdminMode();
-        }
+        // চেক করুন ব্যাকএন্ড সেশন ভ্যালিড আছে কিনা
+        checkMedAdminSession();
 
         // ভিডিও লিংক ইনিশিয়ালাইজ করুন
         initBreedVideoLinks();
@@ -671,32 +709,186 @@ function clickMedMenu(type) {
     } else if (type === 'admin') {
         if (medicineAdminModeEnabled) {
             disableAdminMode();
-            alert("🔒 এডমিন মোড নিষ্ক্রিয় করা হয়েছে!");
+            showToastMessage("🔒 এডমিন মোড নিষ্ক্রিয় করা হয়েছে!");
         } else {
-            document.getElementById("med-password-modal").classList.remove("hidden");
-            document.getElementById("med-admin-pass").value = "";
-            document.getElementById("med-admin-pass").focus();
+            openMedPasswordModal();
         }
     }
 }
 
-function closeMedPasswordModal() {
-    document.getElementById("med-password-modal").classList.add("hidden");
+function openMedPasswordModal() {
+    const modal = document.getElementById("med-password-modal");
+    if (!modal) return;
+    modal.classList.remove("hidden");
+    document.getElementById("med-admin-step1").classList.remove("hidden");
+    document.getElementById("med-admin-step2").classList.add("hidden");
     document.getElementById("med-pass-error").classList.add("hidden");
-    document.getElementById("med-admin-pass").value = "";
+    document.getElementById("med-pass-success").classList.add("hidden");
 }
 
-// Verify Admin password
-function verifyMedAdminPassword() {
-    const pass = document.getElementById("med-admin-pass").value;
-    if (pass === "dev@shuvo") {
-        enableAdminMode();
+function closeMedPasswordModal() {
+    const modal = document.getElementById("med-password-modal");
+    if (modal) modal.classList.add("hidden");
+    document.getElementById("med-pass-error").classList.add("hidden");
+    document.getElementById("med-pass-success").classList.add("hidden");
+}
+
+let medResendTimer = null;
+function startMedResendCountdown(seconds = 30) {
+    const resendBtn = document.getElementById("med-resend-btn");
+    const timerSpan = document.getElementById("med-resend-timer");
+    if (!resendBtn || !timerSpan) return;
+    
+    resendBtn.disabled = true;
+    let remaining = seconds;
+    if (medResendTimer) clearInterval(medResendTimer);
+
+    timerSpan.textContent = `(${remaining}s)`;
+    medResendTimer = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+            clearInterval(medResendTimer);
+            timerSpan.textContent = "";
+            resendBtn.disabled = false;
+        } else {
+            timerSpan.textContent = `(${remaining}s)`;
+        }
+    }, 1000);
+}
+
+// 📩 Send OTP to pkmdshuvo48@gmail.com
+async function sendMedAdminOtp() {
+    const errEl = document.getElementById("med-pass-error");
+    const succEl = document.getElementById("med-pass-success");
+    errEl.classList.add("hidden");
+    succEl.classList.add("hidden");
+
+    const sendBtn = document.getElementById("med-send-otp-btn");
+    const origText = sendBtn.innerHTML;
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = `<span class="inline-block animate-spin">⏳</span> কোড পাঠানো হচ্ছে...`;
+
+    try {
+        const response = await fetch('/api/admin/send-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'pkmdshuvo48@gmail.com' })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || "কোড পাঠাতে সমস্যা হয়েছে।");
+        }
+
+        succEl.textContent = "✅ " + (data.message || "কোড পাঠানো হয়েছে!");
+        succEl.classList.remove("hidden");
+
+        document.getElementById("med-admin-step1").classList.add("hidden");
+        document.getElementById("med-admin-step2").classList.remove("hidden");
+
+        if (data.devCode) {
+            const devBox = document.getElementById("med-dev-preview-box");
+            const devVal = document.getElementById("med-dev-code-val");
+            if (devBox && devVal) {
+                devVal.textContent = data.devCode;
+                devBox.classList.remove("hidden");
+            }
+        }
+
+        startMedResendCountdown(30);
+        setTimeout(() => {
+            const inp = document.getElementById("med-admin-otp-input");
+            if (inp) {
+                inp.value = "";
+                inp.focus();
+            }
+        }, 100);
+
+    } catch (err) {
+        errEl.textContent = "❌ " + err.message;
+        errEl.classList.remove("hidden");
+    } finally {
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = origText;
+    }
+}
+
+// 🔑 Verify OTP & Unlock Admin Mode
+async function verifyMedAdminOtp() {
+    const errEl = document.getElementById("med-pass-error");
+    const succEl = document.getElementById("med-pass-success");
+    errEl.classList.add("hidden");
+    succEl.classList.add("hidden");
+
+    const input = document.getElementById("med-admin-otp-input");
+    const code = (input ? input.value : "").trim();
+
+    if (!code || code.length < 6) {
+        errEl.textContent = "❌ অনুগ্রহ করে ৬ ডিজিটের সম্পূর্ণ কোড লিখুন!";
+        errEl.classList.remove("hidden");
+        return;
+    }
+
+    const verifyBtn = document.getElementById("med-verify-otp-btn");
+    const origText = verifyBtn.innerHTML;
+    verifyBtn.disabled = true;
+    verifyBtn.innerHTML = `<span class="inline-block animate-spin">⏳</span> যাচাই করা হচ্ছে...`;
+
+    try {
+        const response = await fetch('/api/admin/verify-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'pkmdshuvo48@gmail.com', code })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || "ভুল কোড! আবার চেষ্টা করুন।");
+        }
+
+        // Store secure token
+        localStorage.setItem("amarhisab_admin_token", data.token);
         localStorage.setItem("admin_authenticated_shuvo", "true");
+
+        enableAdminMode();
         closeMedPasswordModal();
-        alert("🔓 সফলভাবে এডমিন মোড সক্রিয় হয়েছে!");
-    } else {
-        document.getElementById("med-pass-error").classList.remove("hidden");
-        document.getElementById("med-admin-pass").value = "";
+        showToastMessage("🔓 সফলভাবে এডমিন মোড সক্রিয় হয়েছে!");
+
+    } catch (err) {
+        errEl.textContent = "❌ " + err.message;
+        errEl.classList.remove("hidden");
+    } finally {
+        verifyBtn.disabled = false;
+        verifyBtn.innerHTML = origText;
+    }
+}
+
+async function checkMedAdminSession() {
+    const token = localStorage.getItem("amarhisab_admin_token");
+    if (!token) {
+        disableAdminMode();
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/admin/check-session', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ token })
+        });
+        const data = await response.json();
+        if (data && data.authenticated) {
+            enableAdminMode();
+        } else {
+            disableAdminMode();
+        }
+    } catch (err) {
+        console.warn("Session check warning in medicine.js:", err);
     }
 }
 
@@ -728,8 +920,22 @@ function enableAdminMode() {
     renderScheduleTimeline();
 }
 
-function disableAdminMode() {
+async function disableAdminMode() {
     medicineAdminModeEnabled = false;
+    const token = localStorage.getItem("amarhisab_admin_token");
+    try {
+        if (token) {
+            await fetch('/api/admin/logout', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ token })
+            });
+        }
+    } catch (e) {}
+    localStorage.removeItem("amarhisab_admin_token");
     localStorage.removeItem("admin_authenticated_shuvo");
 
     const badge = document.getElementById("med-admin-badge");

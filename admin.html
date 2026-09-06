@@ -27,21 +27,68 @@
 </head>
 <body class="text-gray-800 pb-20">
 
-    <!-- 🔐 Password Gate Modal -->
+    <!-- 🔐 Gmail OTP Gate Modal -->
     <div id="admin-password-gate" class="fixed inset-0 bg-gray-950/95 z-[999] flex flex-col items-center justify-center p-4 backdrop-blur-md">
         <div class="bg-white rounded-3xl p-6 shadow-2xl border border-gray-100 text-center space-y-4 w-full max-w-sm">
-            <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto">
-                <span class="material-symbols-outlined text-3xl text-red-500">lock</span>
+            <div class="w-16 h-16 bg-teal-50 rounded-full flex items-center justify-center mx-auto text-teal-600 shadow-inner">
+                <span class="material-symbols-outlined text-3xl">verified_user</span>
             </div>
             <div>
-                <h2 class="text-lg font-bold text-gray-800">এডমিন অ্যাক্সেস লকড</h2>
-                <p class="text-xs text-gray-500 mt-1">এই পেজে প্রবেশ করতে সিকিউরিটি পাসওয়ার্ড প্রয়োজন</p>
+                <h2 class="text-lg font-bold text-gray-800">এডমিন নিরাপত্তা যাচাইকরণ</h2>
+                <p class="text-xs text-gray-500 mt-1">শুধুমাত্র অনুমোদিত এডমিন জিমেইল ও ওটিপি কোড দিয়ে প্রবেশ করতে হবে</p>
             </div>
-            <div class="space-y-3">
-                <input type="password" id="admin-gate-pass" placeholder="পাসওয়ার্ড লিখুন" class="w-full p-3 text-center border border-gray-200 rounded-xl font-bold tracking-wider text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
-                <button onclick="checkAdminGatePassword()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl transition duration-200 shadow-md">প্রবেশ করুন</button>
+
+            <!-- Step 1: Request OTP -->
+            <div id="admin-gate-step1" class="space-y-3 text-left">
+                <div>
+                    <label class="text-[11px] font-bold text-gray-500 block mb-1">এডমিন জিমেইল ঠিকানা</label>
+                    <div class="relative">
+                        <input type="email" id="admin-gate-email" value="pkmdshuvo48@gmail.com" readonly class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-xs text-teal-800 focus:outline-none cursor-not-allowed">
+                        <span class="material-symbols-outlined absolute right-3 top-3 text-teal-600 text-sm">lock</span>
+                    </div>
+                </div>
+                <button id="admin-send-code-btn" onclick="requestAdminGateCode()" class="w-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold py-3 rounded-xl transition duration-200 shadow-md text-xs flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-sm">send</span>
+                    <span>ভেরিফিকেশন কোড পাঠান</span>
+                </button>
             </div>
-            <p id="gate-error-msg" class="text-red-500 font-bold text-xs hidden">❌ ভুল পাসওয়ার্ড! আবার চেষ্টা করুন।</p>
+
+            <!-- Step 2: Enter OTP -->
+            <div id="admin-gate-step2" class="space-y-3 text-left hidden">
+                <div class="bg-teal-50 p-2.5 rounded-xl border border-teal-100">
+                    <p class="text-[11px] text-teal-800 font-semibold leading-relaxed">
+                        📩 <span class="font-bold">pkmdshuvo48@gmail.com</span> ঠিকানায় ৬ ডিজিটের কোড পাঠানো হয়েছে।
+                    </p>
+                </div>
+                
+                <div id="admin-dev-preview-box" class="hidden bg-amber-50 p-2 rounded-xl border border-amber-200 text-center">
+                    <span class="text-[10px] text-amber-800 font-bold block">ডেভেলপমেন্ট মোড প্রিভিউ কোড:</span>
+                    <span id="admin-dev-code-val" class="font-mono text-base font-extrabold text-amber-900 tracking-widest"></span>
+                </div>
+
+                <div>
+                    <label class="text-[11px] font-bold text-gray-500 block mb-1">৬ ডিজিটের ভেরিফিকেশন কোড লিখুন</label>
+                    <input type="text" id="admin-gate-otp" maxlength="6" inputmode="numeric" placeholder="------" class="w-full p-3 text-center border border-gray-200 rounded-xl font-bold tracking-[0.4em] text-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-gray-50">
+                </div>
+                <button id="admin-verify-btn" onclick="submitAdminGateOtp()" class="w-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold py-3 rounded-xl transition duration-200 shadow-md text-xs flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-sm">check_circle</span>
+                    <span>কোড যাচাই ও প্রবেশ করুন</span>
+                </button>
+                <div class="flex justify-between items-center text-[11px] text-gray-500 pt-1">
+                    <button id="admin-resend-btn" onclick="requestAdminGateCode()" class="text-teal-600 hover:underline font-bold" disabled>পুনরায় কোড পাঠান</button>
+                    <span id="admin-resend-timer" class="font-medium"></span>
+                </div>
+            </div>
+
+            <p id="gate-error-msg" class="text-red-500 font-bold text-xs hidden"></p>
+            <p id="gate-success-msg" class="text-emerald-600 font-bold text-xs hidden"></p>
+
+            <div class="pt-2 border-t border-gray-100">
+                <a href="/" class="text-xs text-gray-400 hover:text-teal-600 font-bold inline-flex items-center gap-1 transition">
+                    <span class="material-symbols-outlined text-sm">arrow_back</span>
+                    মূল অ্যাপে ফিরে যান
+                </a>
+            </div>
         </div>
     </div>
 
@@ -51,7 +98,13 @@
                 <span class="material-symbols-outlined text-3xl">admin_panel_settings</span> 
                 এডমিন প্যানেল
             </h1>
-            <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm">আমার খামার</span>
+            <div class="flex items-center gap-2">
+                <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm hidden sm:inline">pkmdshuvo48@gmail.com</span>
+                <button onclick="adminLogout()" class="bg-red-500/80 hover:bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold transition flex items-center gap-1 shadow-sm" title="লগআউট">
+                    <span class="material-symbols-outlined text-sm">logout</span>
+                    <span>লগআউট</span>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -192,24 +245,213 @@
     </div>
 
     <script>
-        // --- Password Gate Verification ---
-        function checkAdminGatePassword() {
-            const pass = document.getElementById("admin-gate-pass").value;
-            if (pass === "dev@shuvo") {
-                document.getElementById("admin-password-gate").classList.add("hidden");
-                localStorage.setItem("admin_authenticated_shuvo", "true");
+        // --- 🔐 Secure Admin OTP Verification Flow ---
+        const ADMIN_EMAIL = "pkmdshuvo48@gmail.com";
+        let resendTimerInterval = null;
+
+        function setGateError(msg) {
+            const err = document.getElementById("gate-error-msg");
+            const succ = document.getElementById("gate-success-msg");
+            succ.classList.add("hidden");
+            if (msg) {
+                err.textContent = "❌ " + msg;
+                err.classList.remove("hidden");
             } else {
-                const errorMsg = document.getElementById("gate-error-msg");
-                errorMsg.classList.remove("hidden");
-                document.getElementById("admin-gate-pass").value = "";
+                err.classList.add("hidden");
             }
         }
 
+        function setGateSuccess(msg) {
+            const err = document.getElementById("gate-error-msg");
+            const succ = document.getElementById("gate-success-msg");
+            err.classList.add("hidden");
+            if (msg) {
+                succ.textContent = "✅ " + msg;
+                succ.classList.remove("hidden");
+            } else {
+                succ.classList.add("hidden");
+            }
+        }
+
+        function startResendCountdown(seconds = 30) {
+            const resendBtn = document.getElementById("admin-resend-btn");
+            const timerSpan = document.getElementById("admin-resend-timer");
+            resendBtn.disabled = true;
+            let remaining = seconds;
+            
+            if (resendTimerInterval) clearInterval(resendTimerInterval);
+
+            timerSpan.textContent = `(${remaining}s)`;
+            resendTimerInterval = setInterval(() => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(resendTimerInterval);
+                    timerSpan.textContent = "";
+                    resendBtn.disabled = false;
+                } else {
+                    timerSpan.textContent = `(${remaining}s)`;
+                }
+            }, 1000);
+        }
+
+        async function requestAdminGateCode() {
+            setGateError("");
+            setGateSuccess("");
+            const sendBtn = document.getElementById("admin-send-code-btn");
+            const origText = sendBtn.innerHTML;
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = `<span class="inline-block animate-spin">⏳</span> কোড পাঠানো হচ্ছে...`;
+
+            try {
+                const response = await fetch('/api/admin/send-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: ADMIN_EMAIL })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || "কোড পাঠাতে ব্যর্থ হয়েছে।");
+                }
+
+                setGateSuccess(data.message || "কোড পাঠানো হয়েছে!");
+                document.getElementById("admin-gate-step1").classList.add("hidden");
+                document.getElementById("admin-gate-step2").classList.remove("hidden");
+
+                // If in dev mode without SMTP, show helper dev preview
+                if (data.devCode) {
+                    const devBox = document.getElementById("admin-dev-preview-box");
+                    const devVal = document.getElementById("admin-dev-code-val");
+                    if (devBox && devVal) {
+                        devVal.textContent = data.devCode;
+                        devBox.classList.remove("hidden");
+                    }
+                }
+
+                startResendCountdown(30);
+                setTimeout(() => {
+                    const otpInput = document.getElementById("admin-gate-otp");
+                    if (otpInput) {
+                        otpInput.value = "";
+                        otpInput.focus();
+                    }
+                }, 100);
+
+            } catch (err) {
+                setGateError(err.message);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = origText;
+            }
+        }
+
+        async function submitAdminGateOtp() {
+            setGateError("");
+            setGateSuccess("");
+            const otpInput = document.getElementById("admin-gate-otp");
+            const code = (otpInput ? otpInput.value : "").trim();
+
+            if (!code || code.length < 6) {
+                setGateError("অনুগ্রহ করে ৬ ডিজিটের সম্পূর্ণ কোড লিখুন!");
+                return;
+            }
+
+            const verifyBtn = document.getElementById("admin-verify-btn");
+            const origText = verifyBtn.innerHTML;
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = `<span class="inline-block animate-spin">⏳</span> যাচাই করা হচ্ছে...`;
+
+            try {
+                const response = await fetch('/api/admin/verify-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: ADMIN_EMAIL, code })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || "ভুল কোড! আবার চেষ্টা করুন।");
+                }
+
+                // Store secure session token
+                localStorage.setItem("amarhisab_admin_token", data.token);
+                localStorage.setItem("admin_authenticated_shuvo", "true");
+
+                setGateSuccess("ভেরিফিকেশন সফল! প্রবেশ করা হচ্ছে...");
+                setTimeout(() => {
+                    document.getElementById("admin-password-gate").classList.add("hidden");
+                }, 400);
+
+            } catch (err) {
+                setGateError(err.message);
+            } finally {
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = origText;
+            }
+        }
+
+        async function verifyExistingAdminSession() {
+            const token = localStorage.getItem("amarhisab_admin_token");
+            if (!token) return;
+
+            try {
+                const response = await fetch('/api/admin/check-session', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ token })
+                });
+                const data = await response.json();
+                if (data && data.authenticated) {
+                    document.getElementById("admin-password-gate").classList.add("hidden");
+                    localStorage.setItem("admin_authenticated_shuvo", "true");
+                } else {
+                    localStorage.removeItem("amarhisab_admin_token");
+                    localStorage.removeItem("admin_authenticated_shuvo");
+                    document.getElementById("admin-password-gate").classList.remove("hidden");
+                }
+            } catch (e) {
+                console.warn("Session check failed:", e);
+            }
+        }
+
+        async function adminLogout() {
+            const token = localStorage.getItem("amarhisab_admin_token");
+            try {
+                if (token) {
+                    await fetch('/api/admin/logout', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ token })
+                    });
+                }
+            } catch (e) {}
+            localStorage.removeItem("amarhisab_admin_token");
+            localStorage.removeItem("admin_authenticated_shuvo");
+            window.location.reload();
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
-            if (localStorage.getItem("admin_authenticated_shuvo") === "true") {
-                document.getElementById("admin-password-gate").classList.add("hidden");
+            verifyExistingAdminSession();
+            
+            // Handle Enter key on OTP field
+            const otpInput = document.getElementById("admin-gate-otp");
+            if (otpInput) {
+                otpInput.addEventListener("keyup", (e) => {
+                    if (e.key === "Enter") {
+                        submitAdminGateOtp();
+                    }
+                });
             }
         });
+
 
         // --- Firebase Configuration ---
         const firebaseConfig = {

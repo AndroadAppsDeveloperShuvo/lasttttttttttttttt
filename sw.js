@@ -1,6 +1,6 @@
 // 🌐 Network First Strategy (নিরাপদ অফলাইন সিস্টেম)
 
-const CACHE_NAME = 'khamar-app-v9';
+const CACHE_NAME = 'khamar-app-v10';
 const urlsToCache = [
     './', 
     './index.html', 
@@ -33,12 +33,19 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+    // API এবং নন-GET রিকোয়েস্ট ক্যাশ করা যাবে না
+    if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
+        return;
+    }
+
     event.respondWith(
         fetch(event.request)
         .then(response => {
-            // ইন্টারনেট থাকলে নতুন ফাইল আনবে এবং ক্যাশে সেভ করে রাখবে
-            const clonedResponse = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clonedResponse));
+            // শুধুমাত্র সফল রেসপন্স ক্যাশে সেভ হবে
+            if (response && response.status === 200 && response.type === 'basic') {
+                const clonedResponse = response.clone();
+                caches.open(CACHE_NAME).then(cache => cache.put(event.request, clonedResponse));
+            }
             return response;
         })
         .catch(() => {
