@@ -29,7 +29,7 @@ app.use(express.static(__dirname));
 // ==========================================
 // 🔐 SECURE ADMIN EMAIL & OTP MANAGEMENT
 // ==========================================
-const AUTHORIZED_ADMIN_EMAIL = 'pkmdshuvo48@gmail.com';
+const AUTHORIZED_ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'pkmdshuvo48@gmail.com').trim().toLowerCase();
 
 // In-memory stores
 let currentAdminOtp = null; // { code: string, expiresAt: number, attempts: number, lastRequestedAt: number }
@@ -78,7 +78,7 @@ app.post('/api/admin/send-code', async (req, res) => {
     if (normalizedEmail !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
       return res.status(403).json({
         success: false,
-        error: `অননুমোদিত ইমেইল! শুধুমাত্র অনুমোদিত এডমিন ইমেইল (${AUTHORIZED_ADMIN_EMAIL}) দিয়ে কোড নেওয়া যাবে।`
+        error: "অননুমোদিত ইমেইল! শুধুমাত্র অনুমোদিত এডমিন জিমেইল ঠিকানা দিয়ে কোড পাঠানো যাবে।"
       });
     }
 
@@ -151,19 +151,17 @@ app.post('/api/admin/send-code', async (req, res) => {
     if (emailSent) {
       return res.json({
         success: true,
-        sentTo: AUTHORIZED_ADMIN_EMAIL,
-        message: `আপনার জিমেইলে (${AUTHORIZED_ADMIN_EMAIL}) ৬ ডিজিটের ভেরিফিকেশন কোড পাঠানো হয়েছে। ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।`
+        message: "আপনার জিমেইলে ৬ ডিজিটের ভেরিফিকেশন কোড পাঠানো হয়েছে। ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।"
       });
     } else {
       // If SMTP is not yet configured in .env, provide friendly dev fallback
       const hasSmtpConfig = !!(process.env.SMTP_USER && process.env.SMTP_PASS);
       return res.json({
         success: true,
-        sentTo: AUTHORIZED_ADMIN_EMAIL,
         isDevFallback: !hasSmtpConfig,
         message: hasSmtpConfig 
           ? `ইমেইল পাঠাতে সমস্যা হয়েছে (${emailErrorMsg || 'SMTP Error'}), সার্ভার কনসোলে কোডটি লগ করা হয়েছে।` 
-          : `✅ ভেরিফিকেশন কোড জেনারেট হয়েছে! (SMTP কনফিগার না থাকায় ডেভেলপমেন্ট প্রিভিউ কোড নিচে দেওয়া হলো)`,
+          : `✅ ভেরিফিকেশন কোড জেনারেট হয়েছে! (SMTP সেটআপ না থাকায় প্রিভিউ কোড নিচে দেওয়া হলো)`,
         devCode: !hasSmtpConfig ? otp : undefined
       });
     }
@@ -223,7 +221,6 @@ app.post('/api/admin/verify-code', (req, res) => {
     res.json({
       success: true,
       token,
-      email: AUTHORIZED_ADMIN_EMAIL,
       expiresAt: sessionExpiresAt,
       message: 'ভেরিফিকেশন সফল! এডমিন অ্যাক্সেস প্রদান করা হয়েছে।'
     });
@@ -256,8 +253,7 @@ app.post('/api/admin/check-session', (req, res) => {
 
   res.json({
     authenticated: true,
-    email: session.email,
-    expiresAt: session.expiresAt
+    expiresAt: sessionExpiresAt
   });
 });
 

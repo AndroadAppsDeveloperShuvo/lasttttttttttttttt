@@ -41,10 +41,10 @@
             <!-- Step 1: Request OTP -->
             <div id="admin-gate-step1" class="space-y-3 text-left">
                 <div>
-                    <label class="text-[11px] font-bold text-gray-500 block mb-1">এডমিন জিমেইল ঠিকানা</label>
+                    <label class="text-[11px] font-bold text-gray-600 block mb-1">আপনার এডমিন জিমেইল ঠিকানা</label>
                     <div class="relative">
-                        <input type="email" id="admin-gate-email" value="pkmdshuvo48@gmail.com" readonly class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-xs text-teal-800 focus:outline-none cursor-not-allowed">
-                        <span class="material-symbols-outlined absolute right-3 top-3 text-teal-600 text-sm">lock</span>
+                        <input type="email" id="admin-gate-email" placeholder="এডমিন জিমেইল লিখুন..." autocomplete="email" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-medium text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        <span class="material-symbols-outlined absolute right-3 top-3 text-gray-400 text-sm">mail</span>
                     </div>
                 </div>
                 <button id="admin-send-code-btn" onclick="requestAdminGateCode()" class="w-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold py-3 rounded-xl transition duration-200 shadow-md text-xs flex items-center justify-center gap-2">
@@ -57,7 +57,7 @@
             <div id="admin-gate-step2" class="space-y-3 text-left hidden">
                 <div class="bg-teal-50 p-2.5 rounded-xl border border-teal-100">
                     <p class="text-[11px] text-teal-800 font-semibold leading-relaxed">
-                        📩 <span class="font-bold">pkmdshuvo48@gmail.com</span> ঠিকানায় ৬ ডিজিটের কোড পাঠানো হয়েছে।
+                        📩 আপনার জিমেইল ঠিকানায় ৬ ডিজিটের ভেরিফিকেশন কোড পাঠানো হয়েছে। ইনবক্স চেক করে কোডটি লিখুন।
                     </p>
                 </div>
                 
@@ -99,7 +99,10 @@
                 এডমিন প্যানেল
             </h1>
             <div class="flex items-center gap-2">
-                <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm hidden sm:inline">pkmdshuvo48@gmail.com</span>
+                <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm hidden sm:inline-flex items-center gap-1">
+                    <span class="material-symbols-outlined text-xs">verified</span>
+                    <span>এডমিন একাউন্ট</span>
+                </span>
                 <button onclick="adminLogout()" class="bg-red-500/80 hover:bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold transition flex items-center gap-1 shadow-sm" title="লগআউট">
                     <span class="material-symbols-outlined text-sm">logout</span>
                     <span>লগআউট</span>
@@ -246,7 +249,7 @@
 
     <script>
         // --- 🔐 Secure Admin OTP Verification Flow ---
-        const ADMIN_EMAIL = "pkmdshuvo48@gmail.com";
+        let currentEnteredAdminEmail = "";
         let resendTimerInterval = null;
 
         function setGateError(msg) {
@@ -297,19 +300,43 @@
         async function requestAdminGateCode() {
             setGateError("");
             setGateSuccess("");
+            
+            const emailInput = document.getElementById("admin-gate-email");
+            const email = (emailInput ? emailInput.value : "").trim();
+
+            if (!email) {
+                setGateError("অনুগ্রহ করে আপনার এডমিন জিমেইল লিখুন!");
+                return;
+            }
+
+            currentEnteredAdminEmail = email;
+
             const sendBtn = document.getElementById("admin-send-code-btn");
             const origText = sendBtn.innerHTML;
             sendBtn.disabled = true;
             sendBtn.innerHTML = `<span class="inline-block animate-spin">⏳</span> কোড পাঠানো হচ্ছে...`;
 
             try {
-                const response = await fetch('/api/admin/send-code', {
+                const response = await fetch('/api/admin/send-code?_t=' + Date.now(), {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: ADMIN_EMAIL })
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ email: currentEnteredAdminEmail })
                 });
 
-                const data = await response.json();
+                const resText = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(resText);
+                } catch (parseErr) {
+                    if ('serviceWorker' in navigator) {
+                        const regs = await navigator.serviceWorker.getRegistrations();
+                        for (const reg of regs) await reg.unregister();
+                    }
+                    throw new Error("ব্রাউজার ক্যাশ আপডেট হচ্ছে। অনুগ্রহ করে পেজটি একবার রিফ্রেশ (Refresh) করে আবার চেষ্টা করুন।");
+                }
 
                 if (!response.ok || !data.success) {
                     throw new Error(data.error || "কোড পাঠাতে ব্যর্থ হয়েছে।");
@@ -363,13 +390,22 @@
             verifyBtn.innerHTML = `<span class="inline-block animate-spin">⏳</span> যাচাই করা হচ্ছে...`;
 
             try {
-                const response = await fetch('/api/admin/verify-code', {
+                const response = await fetch('/api/admin/verify-code?_t=' + Date.now(), {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: ADMIN_EMAIL, code })
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ email: currentEnteredAdminEmail, code })
                 });
 
-                const data = await response.json();
+                const resText = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(resText);
+                } catch (parseErr) {
+                    throw new Error("যাচাই করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
+                }
 
                 if (!response.ok || !data.success) {
                     throw new Error(data.error || "ভুল কোড! আবার চেষ্টা করুন।");

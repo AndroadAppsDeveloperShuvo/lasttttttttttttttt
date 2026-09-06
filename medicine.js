@@ -134,10 +134,10 @@ const medicinePageHTML = `
             <!-- Step 1: Send OTP -->
             <div id="med-admin-step1" class="space-y-3 text-left">
                 <div>
-                    <label class="text-[10px] font-bold text-gray-500 dark:text-gray-400 block mb-1">অনুমোদিত এডমিন জিমেইল</label>
+                    <label class="text-[11px] font-bold text-gray-600 dark:text-gray-300 block mb-1">আপনার এডমিন জিমেইল লিখুন</label>
                     <div class="relative">
-                        <input type="email" id="med-admin-email" value="pkmdshuvo48@gmail.com" readonly class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-teal-300 border border-gray-200 rounded-xl font-bold text-xs focus:outline-none cursor-not-allowed">
-                        <span class="material-symbols-outlined absolute right-3 top-2.5 text-teal-600 dark:text-teal-400 text-sm">lock</span>
+                        <input type="email" id="med-admin-email" placeholder="এডমিন জিমেইল লিখুন..." autocomplete="email" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white border border-gray-200 rounded-xl font-medium text-xs focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        <span class="material-symbols-outlined absolute right-3 top-2.5 text-gray-400 text-sm">mail</span>
                     </div>
                 </div>
                 <button id="med-send-otp-btn" onclick="sendMedAdminOtp()" class="w-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold py-2.5 rounded-xl text-xs transition duration-200 shadow-md flex items-center justify-center gap-2">
@@ -148,9 +148,9 @@ const medicinePageHTML = `
 
             <!-- Step 2: Verify OTP -->
             <div id="med-admin-step2" class="space-y-3 text-left hidden">
-                <div class="bg-teal-50 dark:bg-teal-950/30 p-2 rounded-xl border border-teal-100 dark:border-teal-900/50">
+                <div class="bg-teal-50 dark:bg-teal-950/30 p-2.5 rounded-xl border border-teal-100 dark:border-teal-900/50">
                     <p class="text-[11px] text-teal-800 dark:text-teal-300 font-semibold leading-relaxed">
-                        📩 <span class="font-bold">pkmdshuvo48@gmail.com</span> এ ৬ ডিজিটের কোড পাঠানো হয়েছে।
+                        📩 আপনার জিমেইল ঠিকানায় ৬ ডিজিটের ভেরিফিকেশন কোড পাঠানো হয়েছে। ইনবক্স চেক করে কোডটি লিখুন।
                     </p>
                 </div>
 
@@ -716,6 +716,8 @@ function clickMedMenu(type) {
     }
 }
 
+let medAdminCurrentEnteredEmail = "";
+
 function openMedPasswordModal() {
     const modal = document.getElementById("med-password-modal");
     if (!modal) return;
@@ -724,6 +726,10 @@ function openMedPasswordModal() {
     document.getElementById("med-admin-step2").classList.add("hidden");
     document.getElementById("med-pass-error").classList.add("hidden");
     document.getElementById("med-pass-success").classList.add("hidden");
+    const emailInput = document.getElementById("med-admin-email");
+    if (emailInput && !medAdminCurrentEnteredEmail) {
+        emailInput.value = "";
+    }
 }
 
 function closeMedPasswordModal() {
@@ -756,12 +762,23 @@ function startMedResendCountdown(seconds = 30) {
     }, 1000);
 }
 
-// 📩 Send OTP to pkmdshuvo48@gmail.com
+// 📩 Send OTP to user-entered Admin Gmail
 async function sendMedAdminOtp() {
     const errEl = document.getElementById("med-pass-error");
     const succEl = document.getElementById("med-pass-success");
     errEl.classList.add("hidden");
     succEl.classList.add("hidden");
+
+    const emailInput = document.getElementById("med-admin-email");
+    const email = (emailInput ? emailInput.value : "").trim();
+
+    if (!email) {
+        errEl.textContent = "❌ অনুগ্রহ করে আপনার এডমিন জিমেইল লিখুন!";
+        errEl.classList.remove("hidden");
+        return;
+    }
+
+    medAdminCurrentEnteredEmail = email;
 
     const sendBtn = document.getElementById("med-send-otp-btn");
     const origText = sendBtn.innerHTML;
@@ -769,13 +786,26 @@ async function sendMedAdminOtp() {
     sendBtn.innerHTML = `<span class="inline-block animate-spin">⏳</span> কোড পাঠানো হচ্ছে...`;
 
     try {
-        const response = await fetch('/api/admin/send-code', {
+        const response = await fetch('/api/admin/send-code?_t=' + Date.now(), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: 'pkmdshuvo48@gmail.com' })
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ email: medAdminCurrentEnteredEmail })
         });
 
-        const data = await response.json();
+        const resText = await response.text();
+        let data;
+        try {
+            data = JSON.parse(resText);
+        } catch (parseErr) {
+            if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for (const reg of regs) await reg.unregister();
+            }
+            throw new Error("ব্রাউজার ক্যাশ আপডেট হচ্ছে। অনুগ্রহ করে পেজটি একবার রিফ্রেশ (Refresh) করে আবার চেষ্টা করুন।");
+        }
 
         if (!response.ok || !data.success) {
             throw new Error(data.error || "কোড পাঠাতে সমস্যা হয়েছে।");
@@ -836,13 +866,22 @@ async function verifyMedAdminOtp() {
     verifyBtn.innerHTML = `<span class="inline-block animate-spin">⏳</span> যাচাই করা হচ্ছে...`;
 
     try {
-        const response = await fetch('/api/admin/verify-code', {
+        const response = await fetch('/api/admin/verify-code?_t=' + Date.now(), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: 'pkmdshuvo48@gmail.com', code })
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ email: medAdminCurrentEnteredEmail, code })
         });
 
-        const data = await response.json();
+        const resText = await response.text();
+        let data;
+        try {
+            data = JSON.parse(resText);
+        } catch (parseErr) {
+            throw new Error("যাচাই করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
+        }
 
         if (!response.ok || !data.success) {
             throw new Error(data.error || "ভুল কোড! আবার চেষ্টা করুন।");
