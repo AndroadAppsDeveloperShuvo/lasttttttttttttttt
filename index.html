@@ -198,6 +198,41 @@
                         <span class="material-symbols-outlined text-gray-400">chevron_right</span>
                     </button>
                 </div>
+                <!-- 💾 Data Backup & Restore -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <h2 class="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-700/50">ডাটা ব্যাকআপ ও রিস্টোর</h2>
+                    
+                    <!-- Download Backup Button -->
+                    <button onclick="exportFarmDataBackup()" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition border-b border-gray-100 dark:border-gray-700 text-left group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                                <span class="material-symbols-outlined">download</span>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-sm text-gray-800 dark:text-gray-200">ব্যাকআপ ডাউনলোড (JSON)</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">সকল চালান, খরচ, আয়, স্টক ও বাকির ডেটা সেভ রাখুন</p>
+                            </div>
+                        </div>
+                        <span class="material-symbols-outlined text-gray-400 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">chevron_right</span>
+                    </button>
+
+                    <!-- Restore Backup Button -->
+                    <button onclick="triggerRestoreFileInput()" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition text-left group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                                <span class="material-symbols-outlined">upload_file</span>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-sm text-gray-800 dark:text-gray-200">ব্যাকআপ রিস্টোর করুন</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">JSON ফাইল আপলোড করে পূর্বের ডেটা ফিরিয়ে আনুন</p>
+                            </div>
+                        </div>
+                        <span class="material-symbols-outlined text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">chevron_right</span>
+                    </button>
+                    <!-- Hidden File Input for JSON restore -->
+                    <input type="file" id="backup-file-input" accept=".json,application/json" class="hidden" onchange="handleBackupFileSelect(event)">
+                </div>
+
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                     <h2 class="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-700/50">একাউন্ট</h2>
                     <button onclick="logoutUser()" class="w-full flex items-center justify-center gap-2 p-4 text-red-500 font-bold hover:bg-red-50 dark:hover:bg-red-900/20 transition"><span class="material-symbols-outlined">logout</span> লগআউট করুন</button>
@@ -271,6 +306,79 @@
             <div class="p-3 bg-gray-950/80 text-center flex items-center justify-between text-[11px] text-gray-400 border-t border-gray-800/60 px-4">
                 <span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm text-teal-400">info</span> সরাসরি ড্রাইভ ভিডিও প্লেয়ার</span>
                 <span id="video-breed-tag" class="bg-teal-900/50 text-teal-300 border border-teal-700/50 px-2 py-0.5 rounded-md font-bold text-[10px]">ব্রয়লার</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📥 Restore Confirmation Modal -->
+    <div id="restore-confirm-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+        <div class="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl p-6 shadow-2xl border border-gray-100 dark:border-gray-700 relative">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700 mb-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-xl">restore</span>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-800 dark:text-white">ব্যাকআপ রিস্টোর নিশ্চিতকরণ</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">ফাইলের বিস্তারিত তথ্য যাচাই করুন</p>
+                    </div>
+                </div>
+                <button onclick="closeRestoreModal()" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full transition">
+                    <span class="material-symbols-outlined text-xl">close</span>
+                </button>
+            </div>
+
+            <!-- File info banner -->
+            <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl mb-4 border border-gray-100 dark:border-gray-600">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="material-symbols-outlined text-sm text-teal-600 dark:text-teal-400">description</span>
+                    <span id="restore-modal-filename" class="text-xs font-mono font-bold text-gray-700 dark:text-gray-200 truncate">backup.json</span>
+                </div>
+                <div id="restore-modal-date" class="text-[11px] text-gray-500 dark:text-gray-400 pl-6">তারিখ: জানা নেই</div>
+            </div>
+
+            <!-- Statistics Grid -->
+            <div class="grid grid-cols-2 gap-2.5 mb-4">
+                <div class="p-3 bg-teal-50/50 dark:bg-teal-900/20 rounded-xl border border-teal-100 dark:border-teal-800/40">
+                    <span class="text-[11px] text-teal-800 dark:text-teal-300 font-medium flex items-center gap-1">
+                        <span class="material-symbols-outlined text-xs">receipt_long</span> চালান
+                    </span>
+                    <div id="restore-stat-shipments" class="text-base font-bold text-teal-900 dark:text-teal-200 mt-0.5">০ টি</div>
+                </div>
+                <div class="p-3 bg-orange-50/50 dark:bg-orange-900/20 rounded-xl border border-orange-100 dark:border-orange-800/40">
+                    <span class="text-[11px] text-orange-800 dark:text-orange-300 font-medium flex items-center gap-1">
+                        <span class="material-symbols-outlined text-xs">account_balance_wallet</span> বাকির খাতা
+                    </span>
+                    <div id="restore-stat-dues" class="text-base font-bold text-orange-900 dark:text-orange-200 mt-0.5">০ টি</div>
+                </div>
+                <div class="p-3 bg-green-50/50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-800/40">
+                    <span class="text-[11px] text-green-800 dark:text-green-300 font-medium flex items-center gap-1">
+                        <span class="material-symbols-outlined text-xs">inventory</span> স্টক সামগ্রী
+                    </span>
+                    <div id="restore-stat-stock" class="text-base font-bold text-green-900 dark:text-green-200 mt-0.5">০ টি</div>
+                </div>
+                <div class="p-3 bg-purple-50/50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-800/40">
+                    <span class="text-[11px] text-purple-800 dark:text-purple-300 font-medium flex items-center gap-1">
+                        <span class="material-symbols-outlined text-xs">vaccines</span> ঔষধ রেকর্ড
+                    </span>
+                    <div id="restore-stat-meds" class="text-base font-bold text-purple-900 dark:text-purple-200 mt-0.5">০ টি</div>
+                </div>
+            </div>
+
+            <!-- Caution alert -->
+            <div class="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs text-amber-800 dark:text-amber-300 mb-5 flex items-start gap-2">
+                <span class="material-symbols-outlined text-sm flex-shrink-0 mt-0.5">warning</span>
+                <span>সতর্কতা: রিস্টোর সম্পন্ন হলে বর্তমান খামারের যাবতীয় ডেটা এই ব্যাকআপ ফাইলের ডেটা দ্বারা হালনাগাদ হবে।</span>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex gap-2.5">
+                <button onclick="closeRestoreModal()" class="flex-1 py-3 px-4 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    বাতিল করুন
+                </button>
+                <button id="restore-confirm-btn" onclick="executeRestore()" class="flex-1 py-3 px-4 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-sm">cloud_upload</span> হ্যাঁ, রিস্টোর করুন
+                </button>
             </div>
         </div>
     </div>
@@ -676,17 +784,237 @@
             if (frame) frame.src = ""; 
         }
 
+        // ==========================================
+        // 💾 খামারের সম্পূর্ণ ডেটা ব্যাকআপ ও রিস্টোর (Backup & Restore)
+        // ==========================================
+        let pendingRestoreData = null;
+
+        async function exportFarmDataBackup() {
+            if (!currentUser) {
+                showToast("⚠️ ব্যাকআপ ডাউনলোড করতে প্রথমে লগইন করুন!");
+                return;
+            }
+
+            showToast("⏳ সম্পূর্ণ খামারের ব্যাকআপ ফাইল প্রস্তুত হচ্ছে...");
+
+            const uid = currentUser.uid;
+            let farmData = {};
+
+            // ১. ফায়ারবেস ক্লাউড ডাটাবেজ থেকে ইউজারের সম্পূর্ণ ডেটা সংগ্রহ
+            try {
+                const snapshot = await db.ref(`users/${uid}`).once('value');
+                if (snapshot.exists()) {
+                    farmData = snapshot.val() || {};
+                }
+            } catch (err) {
+                console.warn("Firebase fetch failed or offline, fallback to local storage:", err);
+            }
+
+            // ২. লোকাল ক্যাশ থেকে মিসিং ডাটা ব্যাকআপে যুক্ত করা (অফলাইন সুরক্ষা)
+            const localShipments = JSON.parse(localStorage.getItem('offline_shipments_' + uid) || '{}');
+            const localDues = JSON.parse(localStorage.getItem('offline_dues_' + uid) || '{}');
+            const localMeds = JSON.parse(localStorage.getItem(`completed_meds_${uid}`) || '{}');
+
+            if (!farmData.shipments || Object.keys(farmData.shipments).length === 0) {
+                if (Object.keys(localShipments).length > 0) farmData.shipments = localShipments;
+            }
+            if (!farmData.due_list || Object.keys(farmData.due_list).length === 0) {
+                if (Object.keys(localDues).length > 0) farmData.due_list = localDues;
+            }
+            if (!farmData.completed_medicines || Object.keys(farmData.completed_medicines).length === 0) {
+                if (Object.keys(localMeds).length > 0) farmData.completed_medicines = localMeds;
+            }
+
+            // স্টক ডাটা যদি allStockData তে থাকে
+            if (!farmData.stock && typeof allStockData !== 'undefined' && Array.isArray(allStockData) && allStockData.length > 0) {
+                const stockObj = {};
+                allStockData.forEach(item => {
+                    if (item.id) {
+                        const { id, ...rest } = item;
+                        stockObj[id] = rest;
+                    }
+                });
+                farmData.stock = stockObj;
+            }
+
+            const shipmentsCount = Object.keys(farmData.shipments || {}).length;
+            const duesCount = Object.keys(farmData.due_list || {}).length;
+            const stockCount = Object.keys(farmData.stock || {}).length;
+            const medsCount = Object.keys(farmData.completed_medicines || {}).length;
+
+            const now = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+            const timeStr = `${pad(now.getHours())}-${pad(now.getMinutes())}`;
+            const fileName = `amar_hisab_farm_backup_${dateStr}_${timeStr}.json`;
+
+            const fullBackup = {
+                appName: "আমার হিসাব - স্মার্ট পোল্ট্রি খামার",
+                backupVersion: "1.0",
+                backupType: "full_farm_backup",
+                exportTimestamp: now.getTime(),
+                exportDate: now.toISOString(),
+                exportDateFormatted: now.toLocaleDateString('bn-BD', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                userId: uid,
+                userEmail: currentUser.email || '',
+                summary: {
+                    totalShipments: shipmentsCount,
+                    totalDues: duesCount,
+                    totalStockItems: stockCount,
+                    totalCompletedMedicines: medsCount
+                },
+                farmData: farmData
+            };
+
+            const jsonString = JSON.stringify(fullBackup, null, 2);
+            const blob = new Blob([jsonString], { type: "application/json;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1500);
+
+            showToast(`✅ ব্যাকআপ ডাউনলোড সম্পন্ন! (${toBanglaNumber(shipmentsCount)}টি চালান)`);
+        }
+
+        function triggerRestoreFileInput() {
+            if (!currentUser) {
+                showToast("⚠️ রিস্টোর করার জন্য প্রথমে লগইন করুন!");
+                return;
+            }
+            const input = document.getElementById('backup-file-input');
+            if (input) input.click();
+        }
+
+        function handleBackupFileSelect(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            // পুনরায় নির্বাচন সহজ করার জন্য রিসেট
+            event.target.value = '';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    previewRestoreData(parsed, file.name);
+                } catch (err) {
+                    alert("❌ ব্যাকআপ ফাইলটি পড়া যাচ্ছে না! অনুগ্রহ করে সঠিক .json ব্যাকআপ ফাইল আপলোড করুন।");
+                }
+            };
+            reader.onerror = function() {
+                alert("❌ ফাইল লোড করতে সমস্যা হয়েছে!");
+            };
+            reader.readAsText(file);
+        }
+
+        function previewRestoreData(parsed, fileName) {
+            let farmData = null;
+            let backupDate = null;
+
+            if (parsed && typeof parsed === 'object') {
+                if (parsed.farmData && typeof parsed.farmData === 'object') {
+                    farmData = parsed.farmData;
+                    backupDate = parsed.exportDateFormatted || parsed.exportDate;
+                } else if (parsed.data && typeof parsed.data === 'object') {
+                    farmData = parsed.data;
+                    backupDate = parsed.exportDateFormatted || parsed.exportDate;
+                } else if (parsed.shipments || parsed.due_list || parsed.stock || parsed.completed_medicines) {
+                    farmData = parsed;
+                }
+            }
+
+            if (!farmData || typeof farmData !== 'object' || Object.keys(farmData).length === 0) {
+                alert("❌ এই ফাইলে কোনো খামারের তথ্য পাওয়া যায়নি!");
+                return;
+            }
+
+            pendingRestoreData = farmData;
+
+            const shipmentsCount = Object.keys(farmData.shipments || {}).length;
+            const duesCount = Object.keys(farmData.due_list || {}).length;
+            const stockCount = Object.keys(farmData.stock || {}).length;
+            const medsCount = Object.keys(farmData.completed_medicines || {}).length;
+
+            document.getElementById('restore-modal-filename').innerText = fileName;
+            document.getElementById('restore-modal-date').innerText = backupDate ? `তারিখ: ${backupDate}` : 'তারিখ: ফাইল থেকে সনাক্তকৃত';
+            document.getElementById('restore-stat-shipments').innerText = `${toBanglaNumber(shipmentsCount)} টি`;
+            document.getElementById('restore-stat-dues').innerText = `${toBanglaNumber(duesCount)} টি`;
+            document.getElementById('restore-stat-stock').innerText = `${toBanglaNumber(stockCount)} টি`;
+            document.getElementById('restore-stat-meds').innerText = `${toBanglaNumber(medsCount)} টি`;
+
+            const modal = document.getElementById('restore-confirm-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeRestoreModal() {
+            const modal = document.getElementById('restore-confirm-modal');
+            if (modal) modal.classList.add('hidden');
+            pendingRestoreData = null;
+        }
+
+        async function executeRestore() {
+            if (!pendingRestoreData || !currentUser) {
+                closeRestoreModal();
+                return;
+            }
+
+            const btn = document.getElementById('restore-confirm-btn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-sm">progress_activity</span> রিস্টোর হচ্ছে...`;
+
+            const uid = currentUser.uid;
+            const dataToRestore = pendingRestoreData;
+
+            try {
+                // ১. ক্লাউড ডাটাবেজে আপডেট
+                await db.ref(`users/${uid}`).update(dataToRestore);
+            } catch (err) {
+                console.warn("Cloud restore error or offline mode:", err);
+            }
+
+            // ২. অফলাইন লোকালস্টোরেজে আপডেট
+            if (dataToRestore.shipments) {
+                localStorage.setItem('offline_shipments_' + uid, JSON.stringify(dataToRestore.shipments));
+                activeShipmentsForTimer = dataToRestore.shipments;
+            }
+            if (dataToRestore.due_list) {
+                localStorage.setItem('offline_dues_' + uid, JSON.stringify(dataToRestore.due_list));
+            }
+            if (dataToRestore.completed_medicines) {
+                localStorage.setItem(`completed_meds_${uid}`, JSON.stringify(dataToRestore.completed_medicines));
+            }
+
+            // ৩. অ্যাপের ইন্টারফেস রিফ্রেশ করা
+            loadUserData();
+            if (typeof loadStockData === 'function') loadStockData();
+            if (typeof initCompletedMedicinesListener === 'function') initCompletedMedicinesListener(uid);
+            if (typeof loadMedicineShipmentDropdowns === 'function') loadMedicineShipmentDropdowns();
+            if (typeof startStockListener === 'function') startStockListener(uid);
+
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            closeRestoreModal();
+
+            showToast("🎉 সফলভাবে সম্পূর্ণ খামারের ডেটা রিস্টোর সম্পন্ন হয়েছে!");
+            navigateToTab('dashboard');
+        }
+
         navigateToTab('dashboard');
     </script>
     <script src="notifications.js"></script>
     <script src="stock.js"></script>
     <script src="daily_report.js"></script>
-    <script src="medicine.js?v=18"></script>
+    <script src="medicine.js?v=19"></script>
     
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=18').then(reg => {
+                navigator.serviceWorker.register('sw.js?v=19').then(reg => {
                     reg.update();
                 }).catch(e => console.warn('SW registration warning:', e));
             });
