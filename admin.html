@@ -23,6 +23,12 @@
         /* Hide Scrollbar */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* 🛡️ Critical Offline Anti-Breakage Fallback Rules */
+        .hidden { display: none !important; }
+        .fixed { position: fixed; }
+        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+        img { max-width: 100%; height: auto; }
     </style>
 </head>
 <body class="text-gray-800 pb-20">
@@ -893,6 +899,15 @@
                 console.error("Video save error:", err);
                 alert("❌ সংরক্ষণ করতে সমস্যা হয়েছে! ইন্টারনেট কানেকশন চেক করুন।");
             }
+        }
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js?v=18').then(reg => {
+                    reg.update();
+                }).catch(e => console.warn('SW registration warning:', e));
+            });
         }
     </script>
 </body>
