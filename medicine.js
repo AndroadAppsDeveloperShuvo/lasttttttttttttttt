@@ -26,6 +26,10 @@ const medicinePageHTML = `
                         <span class="material-symbols-outlined text-lg">video_settings</span>
                         <span>ভিডিও লিংক পরিবর্তন</span>
                     </div>
+                    <div id="med-menu-totp-btn" onclick="clickMedMenu('totp_qr')" class="hidden px-4 py-3 hover:bg-teal-50 dark:hover:bg-gray-700/50 flex items-center gap-3 text-xs font-bold cursor-pointer transition text-teal-600 dark:text-teal-400">
+                        <span class="material-symbols-outlined text-lg">qr_code_2</span>
+                        <span>Authenticator QR</span>
+                    </div>
                     <div id="med-menu-admin-btn" onclick="clickMedMenu('admin')" class="px-4 py-3 hover:bg-teal-50 dark:hover:bg-gray-700/50 flex items-center gap-3 text-xs font-bold cursor-pointer transition text-red-600 dark:text-red-400">
                         <span class="material-symbols-outlined text-lg">lock</span>
                         <span>এডমিন লগইন</span>
@@ -128,7 +132,7 @@ const medicinePageHTML = `
             </div>
             <div>
                 <h2 class="text-base font-bold text-gray-800 dark:text-white">এডমিন নিরাপত্তা যাচাইকরণ</h2>
-                <p class="text-xs text-gray-400 mt-1">Google Authenticator অথবা জিমেইল ওটিপি দিয়ে প্রবেশ করুন</p>
+                <p class="text-xs text-gray-400 mt-1">আপনার Google Authenticator অ্যাপের ৬ ডিজিটের কোডটি লিখুন</p>
             </div>
 
             <!-- Direct 6-Digit Code Entry (Instant access via Authenticator or Email OTP) -->
@@ -136,7 +140,7 @@ const medicinePageHTML = `
                 <div>
                     <div class="flex justify-between items-center mb-1">
                         <label class="text-[10px] font-bold text-gray-500 dark:text-gray-400">৬ ডিজিটের কোড লিখুন</label>
-                        <span class="text-[9px] text-teal-600 dark:text-teal-400 font-bold bg-teal-50 dark:bg-teal-950/50 px-2 py-0.5 rounded-full">Authenticator / ইমেইল</span>
+                        <span class="text-[9px] text-teal-600 dark:text-teal-400 font-bold bg-teal-50 dark:bg-teal-950/50 px-2 py-0.5 rounded-full">Google Authenticator</span>
                     </div>
                     <input type="text" id="med-admin-otp-input" maxlength="6" inputmode="numeric" placeholder="------" class="w-full p-2.5 text-center border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl font-bold tracking-[0.4em] text-lg focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-inner">
                 </div>
@@ -147,15 +151,11 @@ const medicinePageHTML = `
                 </button>
             </div>
 
-            <!-- Two Action Buttons -->
-            <div class="grid grid-cols-2 gap-2 pt-1 border-t border-gray-100 dark:border-gray-700">
-                <button type="button" onclick="toggleMedEmailSection()" class="bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 p-2 rounded-xl text-[10.5px] font-bold transition flex items-center justify-center gap-1 active:scale-95">
+            <!-- Alternative: Email OTP Fallback (Only for authorized admin) -->
+            <div class="pt-2 border-t border-gray-100 dark:border-gray-700 text-center">
+                <button type="button" onclick="toggleMedEmailSection()" class="text-xs text-gray-500 hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400 font-medium inline-flex items-center gap-1.5 transition py-1 hover:underline">
                     <span class="material-symbols-outlined text-sm text-teal-600 dark:text-teal-400">mail</span>
-                    <span>জিমেইল ওটিপি পাঠান</span>
-                </button>
-                <button type="button" onclick="openMedTotpModal()" class="bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/40 dark:hover:bg-teal-950/60 border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-300 p-2 rounded-xl text-[10.5px] font-bold transition flex items-center justify-center gap-1 active:scale-95">
-                    <span class="material-symbols-outlined text-sm text-teal-600 dark:text-teal-400">qr_code_2</span>
-                    <span>Authenticator QR</span>
+                    <span>জরুরী প্রয়োজনে জিমেইলে ওটিপি কোড পাঠান</span>
                 </button>
             </div>
 
@@ -799,6 +799,8 @@ function clickMedMenu(type) {
         } else {
             openMedPasswordModal();
         }
+    } else if (type === 'totp_qr') {
+        openMedTotpModal();
     }
 }
 
@@ -907,6 +909,12 @@ function toggleMedEmailSection() {
 }
 
 function openMedTotpModal() {
+    // 🛡️ SECURITY GUARD: Only authenticated admin can view the setup QR code and secret
+    if (!medicineAdminModeEnabled) {
+        showToastMessage("⚠️ নিরাপত্তার স্বার্থে শুধুমাত্র লগইন করা এডমিনই Authenticator QR দেখতে পারবেন!");
+        return;
+    }
+
     const modal = document.getElementById("med-totp-setup-modal");
     if (!modal) return;
     modal.classList.remove("hidden");
@@ -1324,6 +1332,9 @@ function enableAdminMode() {
     const videoEditMenuBtn = document.getElementById("med-menu-video-edit-btn");
     if (videoEditMenuBtn) videoEditMenuBtn.classList.remove("hidden");
 
+    const totpMenuBtn = document.getElementById("med-menu-totp-btn");
+    if (totpMenuBtn) totpMenuBtn.classList.remove("hidden");
+
     const videoAdminBtn = document.getElementById("med-video-admin-btn");
     if (videoAdminBtn) videoAdminBtn.classList.remove("hidden");
 
@@ -1367,6 +1378,9 @@ async function disableAdminMode() {
 
     const videoEditMenuBtn = document.getElementById("med-menu-video-edit-btn");
     if (videoEditMenuBtn) videoEditMenuBtn.classList.add("hidden");
+
+    const totpMenuBtn = document.getElementById("med-menu-totp-btn");
+    if (totpMenuBtn) totpMenuBtn.classList.add("hidden");
 
     const videoAdminBtn = document.getElementById("med-video-admin-btn");
     if (videoAdminBtn) videoAdminBtn.classList.add("hidden");

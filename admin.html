@@ -41,7 +41,7 @@
             </div>
             <div>
                 <h2 class="text-lg font-bold text-gray-800">এডমিন নিরাপত্তা যাচাইকরণ</h2>
-                <p class="text-xs text-gray-500 mt-1">Google Authenticator অথবা জিমেইল ওটিপি দিয়ে প্রবেশ করুন</p>
+                <p class="text-xs text-gray-500 mt-1">আপনার Google Authenticator অ্যাপের ৬ ডিজিটের কোডটি লিখুন</p>
             </div>
 
             <!-- Direct 6-Digit Code Entry (Instant access via Authenticator or Email OTP) -->
@@ -49,7 +49,7 @@
                 <div>
                     <div class="flex justify-between items-center mb-1">
                         <label class="text-[11px] font-bold text-gray-700">৬ ডিজিটের কোড লিখুন</label>
-                        <span class="text-[10px] text-teal-600 font-bold bg-teal-50 px-2 py-0.5 rounded-full">Authenticator / ইমেইল</span>
+                        <span class="text-[10px] text-teal-600 font-bold bg-teal-50 px-2 py-0.5 rounded-full">Google Authenticator</span>
                     </div>
                     <input type="text" id="admin-gate-otp" maxlength="6" inputmode="numeric" placeholder="------" class="w-full p-3 text-center border border-gray-200 rounded-xl font-bold tracking-[0.4em] text-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-gray-50 text-gray-800 shadow-inner">
                 </div>
@@ -60,15 +60,11 @@
                 </button>
             </div>
 
-            <!-- Two Helpful Option Buttons -->
-            <div class="grid grid-cols-2 gap-2 pt-1 border-t border-gray-100">
-                <button type="button" onclick="toggleAdminEmailSection()" class="bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 p-2.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
+            <!-- Alternative: Email OTP Fallback (Only for authorized admin) -->
+            <div class="pt-2 border-t border-gray-100 text-center">
+                <button type="button" onclick="toggleAdminEmailSection()" class="text-xs text-gray-500 hover:text-teal-600 font-medium inline-flex items-center gap-1.5 transition py-1 hover:underline">
                     <span class="material-symbols-outlined text-sm text-teal-600">mail</span>
-                    <span>জিমেইল ওটিপি পাঠান</span>
-                </button>
-                <button type="button" onclick="openTotpSetupModal()" class="bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-800 p-2.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
-                    <span class="material-symbols-outlined text-sm text-teal-600">qr_code_2</span>
-                    <span>Authenticator QR</span>
+                    <span>জরুরী প্রয়োজনে জিমেইলে ওটিপি কোড পাঠান</span>
                 </button>
             </div>
 
@@ -483,6 +479,14 @@
         let currentTotpSecret = DEFAULT_ADMIN_TOTP_SECRET;
 
         function openTotpSetupModal() {
+            // 🛡️ SECURITY GUARD: Only authenticated admin can view the setup QR code and secret
+            const isAuth = localStorage.getItem("admin_authenticated_shuvo");
+            const gate = document.getElementById("admin-password-gate");
+            if (isAuth !== "true" || (gate && !gate.classList.contains("hidden"))) {
+                setGateError("নিরাপত্তার স্বার্থে প্রথমে সঠিক কোড দিয়ে এডমিন লগইন সম্পন্ন করুন!");
+                return;
+            }
+
             const modal = document.getElementById("totp-setup-modal");
             if (!modal) return;
             modal.classList.remove("hidden");
