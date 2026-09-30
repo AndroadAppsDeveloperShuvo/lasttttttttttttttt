@@ -2,7 +2,10 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import fs from 'fs';
 import nodemailer from 'nodemailer';
+import { generateSecret, generateURI, verifySync } from 'otplib';
+import QRCode from 'qrcode';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,7 +29,7 @@ app.use(express.json());
 
 // Block direct access to sensitive server & configuration files
 app.use((req, res, next) => {
-  const sensitiveFiles = ['.env', 'server.js', 'package.json', 'bun.lock'];
+  const sensitiveFiles = ['.env', 'server.js', 'package.json', 'bun.lock', 'totp-secret.json'];
   const reqPath = req.path.toLowerCase().replace(/^\/+/, '');
   if (sensitiveFiles.some(f => reqPath === f || reqPath.startsWith(f + '/') || reqPath.includes('/' + f))) {
     return res.status(403).json({ error: 'Access denied to sensitive file' });
@@ -44,22 +47,41 @@ app.use(express.static(__dirname, {
 }));
 
 // ==========================================
-// 🔐 SECURE ADMIN EMAIL & OTP MANAGEMENT
+// 🔐 SECURE ADMIN AUTH: GMAIL OTP + GOOGLE AUTHENTICATOR (TOTP)
 // ==========================================
-const AUTHORIZED_ADMIN_EMAILS = [
-  'pkmdshuvo48@gmail.com',
-  'freefirelover2111887942@gmail.com'
-];
-if (process.env.ADMIN_EMAIL) {
-  const envAdmin = process.env.ADMIN_EMAIL.trim().toLowerCase();
-  if (!AUTHORIZED_ADMIN_EMAILS.includes(envAdmin)) {
-    AUTHORIZED_ADMIN_EMAILS.push(envAdmin);
+const AUTHORIZED_ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'pkmdshuvo48@gmail.com').trim().toLowerCase();
+const TOTP_SECRET_FILE = path.join(__dirname, 'totp-secret.json');
+
+function getAdminTotpSecret() {
+  if (process.env.ADMIN_TOTP_SECRET) {
+    return process.env.ADMIN_TOTP_SECRET.trim().replace(/\s+/g, '');
   }
+  try {
+    if (fs.existsSync(TOTP_SECRET_FILE)) {
+      const data = JSON.parse(fs.readFileSync(TOTP_SECRET_FILE, 'utf8'));
+      if (data && data.secret) {
+        return data.secret;
+      }
+    }
+  } catch (err) {
+    console.error('Error reading totp-secret.json:', err);
+  }
+
+  const newSecret = generateSecret();
+  try {
+    fs.writeFileSync(TOTP_SECRET_FILE, JSON.stringify({
+      secret: newSecret,
+      email: AUTHORIZED_ADMIN_EMAIL,
+      createdAt: new Date().toISOString()
+    }, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Error writing totp-secret.json:', err);
+  }
+  return newSecret;
 }
-const AUTHORIZED_ADMIN_EMAIL = AUTHORIZED_ADMIN_EMAILS[0];
 
 // In-memory stores
-let currentAdminOtp = null; // { email: string, code: string, expiresAt: number, attempts: number, lastRequestedAt: number }
+let currentAdminOtp = null; // { code: string, expiresAt: number, attempts: number, lastRequestedAt: number }
 const adminSessions = new Map(); // token -> { email: string, expiresAt: number }
 
 // Cleanup expired sessions periodically
@@ -100,11 +122,10 @@ function getEmailTransporter() {
 // 📩 1. Send OTP to Admin Email
 app.post('/api/admin/send-code', async (req, res) => {
   try {
-    const { email, code } = req.body || {};
+    const { email } = req.body || {};
     const normalizedEmail = (email || '').trim().toLowerCase();
 
-    const isAuthorized = AUTHORIZED_ADMIN_EMAILS.includes(normalizedEmail);
-    if (!isAuthorized) {
+    if (normalizedEmail !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
       return res.status(403).json({
         success: false,
         error: "অননুমোদিত ইমেইল! শুধুমাত্র অনুমোদিত এডমিন জিমেইল ঠিকানা দিয়ে কোড পাঠানো যাবে।"
@@ -113,13 +134,11 @@ app.post('/api/admin/send-code', async (req, res) => {
 
     const now = Date.now();
 
-    // Use code provided by client if valid 6-digit, or generate secure 6-digit OTP
-    const clientProvidedCode = (code && /^\d{6}$/.test(String(code).trim())) ? String(code).trim() : null;
-    const otp = clientProvidedCode || crypto.randomInt(100000, 999999).toString();
+    // Generate secure 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
     const expiresAt = now + 10 * 60 * 1000; // 10 minutes
 
     currentAdminOtp = {
-      email: normalizedEmail,
       code: otp,
       expiresAt,
       attempts: 0,
@@ -128,7 +147,7 @@ app.post('/api/admin/send-code', async (req, res) => {
 
     console.log(`\n========================================`);
     console.log(`🔐 [ADMIN OTP GENERATED]`);
-    console.log(`Target Email: ${normalizedEmail}`);
+    console.log(`Target Email: ${AUTHORIZED_ADMIN_EMAIL}`);
     console.log(`Verification Code: ${otp}`);
     console.log(`Expires in: 10 minutes`);
     console.log(`========================================\n`);
@@ -139,10 +158,10 @@ app.post('/api/admin/send-code', async (req, res) => {
 
     if (transporter) {
       try {
-        const user = (process.env.SMTP_USER || process.env.GMAIL_USER || 'pkmdshuvo48@gmail.com').trim();
+        const fromAddress = process.env.SMTP_USER || process.env.GMAIL_USER || 'no-reply@amarhisab.app';
         await transporter.sendMail({
-          from: `"আমার খামার সিকিউরিটি" <${user}>`,
-          to: normalizedEmail,
+          from: `"আমার খামার সিকিউরিটি" <${fromAddress}>`,
+          to: AUTHORIZED_ADMIN_EMAIL,
           subject: `🔐 [আমার খামার] এডমিন প্যানেল ভেরিফিকেশন কোড: ${otp}`,
           text: `আপনার এডমিন প্যানেল ভেরিফিকেশন কোড হলো: ${otp}\nএই কোডটি পরবর্তী ১০ মিনিট কার্যকর থাকবে।\nকাউকে এই কোড শেয়ার করবেন না।`,
           html: `
@@ -173,7 +192,6 @@ app.post('/api/admin/send-code', async (req, res) => {
     if (emailSent) {
       return res.json({
         success: true,
-        code: otp,
         message: "আপনার জিমেইলে ৬ ডিজিটের ভেরিফিকেশন কোড পাঠানো হয়েছে। ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।"
       });
     } else {
@@ -188,77 +206,114 @@ app.post('/api/admin/send-code', async (req, res) => {
   }
 });
 
-// 🔑 2. Verify OTP & Issue Secure Session Token
+// 📲 2. Google Authenticator Setup Endpoint (QR Code + Secret Key)
+app.get('/api/admin/totp-setup', async (req, res) => {
+  try {
+    const secret = getAdminTotpSecret();
+    const otpauthUrl = generateURI({
+      secret,
+      label: AUTHORIZED_ADMIN_EMAIL,
+      issuer: 'Amar Khamar'
+    });
+
+    const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl, {
+      errorCorrectionLevel: 'M',
+      margin: 2,
+      width: 260
+    });
+
+    res.json({
+      success: true,
+      email: AUTHORIZED_ADMIN_EMAIL,
+      secret,
+      secretFormatted: secret.match(/.{1,4}/g).join(' '),
+      otpauthUrl,
+      qrCode: qrCodeDataUrl,
+      issuer: 'আমার খামার'
+    });
+  } catch (err) {
+    console.error('Error generating TOTP setup:', err);
+    res.status(500).json({ success: false, error: 'Google Authenticator সেটআপ তৈরি করতে সমস্যা হয়েছে।' });
+  }
+});
+
+// 🔑 3. Verify Code (Google Authenticator TOTP or Gmail OTP) & Issue Secure Session Token
 app.post('/api/admin/verify-code', (req, res) => {
   try {
     const { email, code } = req.body || {};
     const normalizedEmail = (email || '').trim().toLowerCase();
     const normalizedCode = (code || '').trim();
 
-    // 1. MASTER BACKUP PASSCODE (Instant zero-fail guarantee: 157287)
-    if (normalizedCode === '157287' || normalizedCode === '484848') {
-      currentAdminOtp = null;
-      const token = crypto.randomBytes(32).toString('hex');
-      const sessionExpiresAt = Date.now() + 24 * 60 * 60 * 1000;
-      adminSessions.set(token, {
-        email: normalizedEmail || AUTHORIZED_ADMIN_EMAILS[0],
-        expiresAt: sessionExpiresAt
-      });
-      return res.json({
-        success: true,
-        token,
-        expiresAt: sessionExpiresAt,
-        message: 'ভেরিফিকেশন সফল! মাস্টার কোড দিয়ে এডমিন অ্যাক্সেস প্রদান করা হয়েছে।'
-      });
-    }
-
-    const targetEmail = normalizedEmail || (currentAdminOtp ? currentAdminOtp.email : '');
-    const isAuthorized = AUTHORIZED_ADMIN_EMAILS.includes(targetEmail);
-    if (!isAuthorized) {
+    if (normalizedEmail && normalizedEmail !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
       return res.status(403).json({ success: false, error: 'অননুমোদিত ইমেইল ঠিকানা!' });
     }
 
-    if (!currentAdminOtp) {
-      return res.status(400).json({ success: false, error: 'কোনো ভেরিফিকেশন কোড পাওয়া যায়নি। অনুগ্রহ করে নতুন কোড পাঠান।' });
+    if (!normalizedCode || normalizedCode.length !== 6) {
+      return res.status(400).json({ success: false, error: 'অনুগ্রহ করে ৬ ডিজিটের সম্পূর্ণ কোড লিখুন।' });
     }
 
-    if (Date.now() > currentAdminOtp.expiresAt) {
-      currentAdminOtp = null;
-      return res.status(400).json({ success: false, error: 'কোডের মেয়াদ শেষ হয়ে গেছে। অনুগ্রহ করে আবার নতুন কোড পাঠান।' });
+    // A. Check Google Authenticator TOTP token
+    const totpSecret = getAdminTotpSecret();
+    let isTotpValid = false;
+    try {
+      const totpCheck = verifySync({
+        token: normalizedCode,
+        secret: totpSecret,
+        epochTolerance: 35
+      });
+      isTotpValid = !!(totpCheck && totpCheck.valid);
+    } catch (e) {
+      console.error('TOTP check exception:', e);
     }
 
-    // Check failed attempts to prevent brute force
-    if (currentAdminOtp.attempts >= 5) {
-      currentAdminOtp = null;
-      return res.status(429).json({ success: false, error: 'অতিরিক্ত ভুল চেষ্টার কারণে কোডটি বাতিল করা হয়েছে। নতুন কোড পাঠান।' });
+    // B. Check Active Email OTP
+    let isEmailOtpValid = false;
+    if (currentAdminOtp && Date.now() <= currentAdminOtp.expiresAt) {
+      if (currentAdminOtp.code === normalizedCode) {
+        isEmailOtpValid = true;
+      }
     }
 
-    if (currentAdminOtp.code !== normalizedCode) {
-      currentAdminOtp.attempts += 1;
-      const remaining = 5 - currentAdminOtp.attempts;
+    if (!isTotpValid && !isEmailOtpValid) {
+      if (currentAdminOtp) {
+        currentAdminOtp.attempts = (currentAdminOtp.attempts || 0) + 1;
+        if (currentAdminOtp.attempts >= 5) {
+          currentAdminOtp = null;
+          return res.status(429).json({
+            success: false,
+            error: 'অতিরিক্ত ভুল চেষ্টার কারণে ইমেইল ওটিপি বাতিল করা হয়েছে। নতুন ওটিপি পাঠান অথবা Google Authenticator কোড ব্যবহার করুন।'
+          });
+        }
+      }
       return res.status(400).json({
         success: false,
-        error: `ভুল কোড! আপনার আর ${remaining} বার চেষ্টা করার সুযোগ রয়েছে।`
+        error: 'ভুল কোড! আপনার Google Authenticator অ্যাপের চলতি ৬ ডিজিট কোড অথবা জিমেইলের ওটিপি কোডটি লিখুন।'
       });
     }
 
-    // Correct code! Invalidate OTP immediately to prevent reuse
-    currentAdminOtp = null;
+    // Invalidate email OTP if it was verified
+    if (isEmailOtpValid) {
+      currentAdminOtp = null;
+    }
 
     // Generate secure admin token (24 hours validity)
     const token = crypto.randomBytes(32).toString('hex');
     const sessionExpiresAt = Date.now() + 24 * 60 * 60 * 1000;
 
     adminSessions.set(token, {
-      email: targetEmail,
-      expiresAt: sessionExpiresAt
+      email: AUTHORIZED_ADMIN_EMAIL,
+      expiresAt: sessionExpiresAt,
+      authMethod: isTotpValid ? 'Google Authenticator' : 'Email OTP'
     });
 
     res.json({
       success: true,
       token,
       expiresAt: sessionExpiresAt,
-      message: 'ভেরিফিকেশন সফল! এডমিন অ্যাক্সেস প্রদান করা হয়েছে।'
+      authMethod: isTotpValid ? 'Google Authenticator' : 'Email OTP',
+      message: isTotpValid 
+        ? 'Google Authenticator দিয়ে সফলভাবে যাচাই হয়েছে! এডমিন অ্যাক্সেস প্রদান করা হয়েছে।'
+        : 'জিমেইল ওটিপি দিয়ে সফলভাবে যাচাই হয়েছে! এডমিন অ্যাক্সেস প্রদান করা হয়েছে।'
     });
   } catch (err) {
     console.error('Error in /api/admin/verify-code:', err);
@@ -289,7 +344,7 @@ app.post('/api/admin/check-session', (req, res) => {
 
   res.json({
     authenticated: true,
-    expiresAt: sessionExpiresAt
+    expiresAt: session.expiresAt
   });
 });
 
