@@ -690,7 +690,8 @@ function clickMedMenu(type) {
             return;
         }
         const email = (user.email || '').trim().toLowerCase();
-        if (email !== getAdminTargetEmail()) {
+        const isAuth = await isAuthorizedAdminEmail(email);
+        if (!isAuth) {
             alert("⛔ অননুমোদিত একাউন্ট! আপনার চলতি একাউন্ট দিয়ে এডমিন মোড সক্রিয় করার অনুমতি নেই।");
             return;
         }
@@ -703,17 +704,30 @@ function clickMedMenu(type) {
     }
 }
 
-// 🛡️ STRICT WHITELIST & CRYPTOGRAPHIC HASH (No plaintext email/secret in source)
+// 🛡️ STRICT ONE-WAY CRYPTOGRAPHIC HASH (No plaintext email or Base64 in source)
 const AUTH_ADMIN_HASH = "09bee536b2d1a9aa7b381a3f572e4c1492db86ff689a9597ba263fbec638cd57";
-const getAdminTargetEmail = () => atob("cGttZHNodXZvNDhAZ21haWwuY29t");
+
+async function isAuthorizedAdminEmail(email) {
+    if (!email) return false;
+    const clean = email.trim().toLowerCase();
+    try {
+        if (window.crypto && crypto.subtle) {
+            const buffer = new TextEncoder().encode(clean);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+            const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex === AUTH_ADMIN_HASH;
+        }
+    } catch (e) {}
+    return false;
+}
 
 // 🛡️ High-Security Vault: Decrypted only in-memory when authentic admin is present
 const _ADMIN_VAULT_BYTES = [127,123,38,82,33,119,4,121,81,124,41,115,52,97,84,36,120,38,5,119,102,85,4,52,113,113,5,82,99,84,103,96];
 
-function getSecureAdminTotpSecret(email) {
+async function getSecureAdminTotpSecret(email) {
     if (!email) return null;
-    const clean = email.trim().toLowerCase();
-    if (clean !== getAdminTargetEmail()) return null;
+    const isAuth = await isAuthorizedAdminEmail(email);
+    if (!isAuth) return null;
     const hash = AUTH_ADMIN_HASH;
     let decrypted = "";
     for (let i = 0; i < _ADMIN_VAULT_BYTES.length; i++) {
@@ -721,6 +735,10 @@ function getSecureAdminTotpSecret(email) {
     }
     return decrypted;
 }
+
+// 🛡️ Brute-force rate limiter
+let medFailedOtpAttempts = 0;
+let medLockoutUntil = 0;
 
 function base32ToBytes(base32) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -815,6 +833,14 @@ async function verifyMedAdminOtp() {
     const input = document.getElementById("med-admin-otp-input");
     const code = (input ? input.value : "").trim();
 
+    // 🛡️ Lockout check
+    if (Date.now() < medLockoutUntil) {
+        const remainingSec = Math.ceil((medLockoutUntil - Date.now()) / 1000);
+        errEl.textContent = `⚠️ অতিরিক্ত ভুল কোড দেওয়ার কারণে সাময়িকভাবে ব্লক করা হয়েছে। অনুগ্রহ করে ${remainingSec} সেকেন্ড পর পুনরায় চেষ্টা করুন।`;
+        errEl.classList.remove("hidden");
+        return;
+    }
+
     if (!code || code.length !== 6) {
         errEl.textContent = "❌ অনুগ্রহ করে ৬ ডিজিটের সম্পূর্ণ কোড লিখুন!";
         errEl.classList.remove("hidden");
@@ -836,7 +862,8 @@ async function verifyMedAdminOtp() {
         return;
     }
     const email = (user.email || '').trim().toLowerCase();
-    if (email !== getAdminTargetEmail()) {
+    const isAuth = await isAuthorizedAdminEmail(email);
+    if (!isAuth) {
         errEl.textContent = "⛔ অননুমোদিত একাউন্ট! আপনার চলতি একাউন্ট দিয়ে এডমিন মোড ব্যবহারের অনুমতি নেই।";
         errEl.classList.remove("hidden");
         verifyBtn.disabled = false;
@@ -880,7 +907,7 @@ async function verifyMedAdminOtp() {
     // B. Client-side Google Authenticator validation with Secured Vault (No plaintext secret in repo!)
     if (!isSuccess) {
         try {
-            const secret = getSecureAdminTotpSecret(email);
+            const secret = await getSecureAdminTotpSecret(email);
             if (secret) {
                 const isClientTotpOk = await verifyClientTotp(code, secret);
                 if (isClientTotpOk) {
@@ -895,12 +922,23 @@ async function verifyMedAdminOtp() {
     }
 
     if (!isSuccess) {
-        errEl.textContent = "❌ ভুল কোড! আপনার Google Authenticator অ্যাপের চলতি ৬ ডিজিট কোডটি দিন।";
+        medFailedOtpAttempts++;
+        if (medFailedOtpAttempts >= 5) {
+            medLockoutUntil = Date.now() + 60 * 1000;
+            medFailedOtpAttempts = 0;
+            errEl.textContent = "⚠️ পরপর ৫ বার ভুল কোড দেওয়া হয়েছে! নিরাপত্তার স্বার্থে ৬০ সেকেন্ডের জন্য ইনপুট লক করা হলো।";
+        } else {
+            errEl.textContent = `❌ ভুল কোড! আপনার Google Authenticator অ্যাপের চলতি ৬ ডিজিট কোডটি দিন (বাকি সুযোগ: ${5 - medFailedOtpAttempts})`;
+        }
         errEl.classList.remove("hidden");
         verifyBtn.disabled = false;
         verifyBtn.innerHTML = origText;
         return;
     }
+
+    // Reset failed attempts
+    medFailedOtpAttempts = 0;
+    medLockoutUntil = 0;
 
     // Enable Admin Mode
     localStorage.setItem("amarhisab_admin_token", token || ("admin_token_" + Date.now()));
@@ -1091,9 +1129,10 @@ function playCurrentBreedVideo() {
     }
 }
 
-function openMedVideoEditModal() {
-    if (!medicineAdminModeEnabled) {
-        alert("🔒 ভিডিও লিংক পরিবর্তন করতে এডমিন মোড সক্রিয় থাকতে হবে!");
+async function openMedVideoEditModal() {
+    const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+    if (!user || !(await isAuthorizedAdminEmail(user.email))) {
+        alert("🔒 ভিডিও লিংক পরিবর্তন করতে অনুমোদিত এডমিন মোড সক্রিয় থাকতে হবে!");
         return;
     }
     const tabIds = ['Broiler', 'ColorBird', 'Sonali', 'Deshi'];
@@ -1114,8 +1153,9 @@ function closeMedVideoEditModal() {
 
 async function saveBreedVideoLinks(e) {
     e.preventDefault();
-    if (!medicineAdminModeEnabled) {
-        alert("🔒 সংরক্ষণ করতে এডমিন মোড সক্রিয় থাকতে হবে!");
+    const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+    if (!user || !(await isAuthorizedAdminEmail(user.email))) {
+        alert("🔒 সংরক্ষণ করতে অনুমোদিত এডমিন একাউন্ট প্রয়োজন!");
         return;
     }
 
@@ -1561,8 +1601,9 @@ function renderScheduleTimeline() {
 
 // Seeding Default Veterinary guidelines automatically
 async function autoSeedSchedules() {
-    if (!medicineAdminModeEnabled) {
-        alert("🔒 এটি করতে এডমিন লগইন করা প্রয়োজন!");
+    const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+    if (!user || !(await isAuthorizedAdminEmail(user.email))) {
+        alert("🔒 এটি করতে অনুমোদিত এডমিন একাউন্ট প্রয়োজন!");
         return;
     }
     if (!targetDb) {
@@ -1591,9 +1632,10 @@ async function autoSeedSchedules() {
 }
 
 // Modal control for adding/editing guidelines
-function openMedFormModal() {
-    if (!medicineAdminModeEnabled) {
-        alert("🔒 গাইডলাইন অ্যাড করতে এডমিন মোড সক্রিয় থাকতে হবে!");
+async function openMedFormModal() {
+    const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+    if (!user || !(await isAuthorizedAdminEmail(user.email))) {
+        alert("🔒 গাইডলাইন অ্যাড করতে অনুমোদিত এডমিন মোড সক্রিয় থাকতে হবে!");
         return;
     }
     document.getElementById("med-guideline-form").reset();
@@ -1606,9 +1648,10 @@ function closeMedFormModal() {
     document.getElementById("med-form-modal").classList.add("hidden");
 }
 
-function editMedGuideline(id) {
-    if (!medicineAdminModeEnabled) {
-        alert("🔒 এডিট করতে এডমিন মোড সক্রিয় থাকতে হবে!");
+async function editMedGuideline(id) {
+    const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+    if (!user || !(await isAuthorizedAdminEmail(user.email))) {
+        alert("🔒 এডিট করতে অনুমোদিত এডমিন মোড সক্রিয় থাকতে হবে!");
         return;
     }
     const item = adminSchedules.find(x => x.id === id);
@@ -1629,8 +1672,9 @@ function editMedGuideline(id) {
 
 // Delete guideline function
 async function deleteMedGuideline(id) {
-    if (!medicineAdminModeEnabled) {
-        alert("🔒 ডিলিট করতে এডমিন মোড সক্রিয় থাকতে হবে!");
+    const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+    if (!user || !(await isAuthorizedAdminEmail(user.email))) {
+        alert("🔒 ডিলিট করতে অনুমোদিত এডমিন মোড সক্রিয় থাকতে হবে!");
         return;
     }
     if (!targetDb) {
@@ -1703,8 +1747,9 @@ function parseDays(inputStr) {
 // Form submit logic
 async function submitMedGuidelineForm(e) {
     e.preventDefault();
-    if (!medicineAdminModeEnabled) {
-        alert("🔒 গাইডলাইন সংরক্ষণ করতে এডমিন মোড সক্রিয় থাকতে হবে!");
+    const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+    if (!user || !(await isAuthorizedAdminEmail(user.email))) {
+        alert("🔒 গাইডলাইন সংরক্ষণ করতে অনুমোদিত এডমিন মোড সক্রিয় থাকতে হবে!");
         return;
     }
     if (!targetDb) {

@@ -103,8 +103,8 @@ function getEmailTransporter() {
   if (cachedEmailTransporter) {
     return cachedEmailTransporter;
   }
-  const user = (process.env.SMTP_USER || process.env.GMAIL_USER || 'pkmdshuvo48@gmail.com').trim();
-  const pass = (process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD || 'kpndleruvxbgriqw').replace(/\s+/g, '');
+  const user = (process.env.SMTP_USER || process.env.GMAIL_USER || process.env.ADMIN_EMAIL || '').trim();
+  const pass = (process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
 
   if (!user || !pass) {
     return null;
