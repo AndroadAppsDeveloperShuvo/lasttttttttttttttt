@@ -149,8 +149,8 @@ const medicinePageHTML = `
             <!-- Step 2: Verify OTP -->
             <div id="med-admin-step2" class="space-y-3 text-left hidden">
                 <div class="bg-teal-50 dark:bg-teal-950/30 p-2.5 rounded-xl border border-teal-100 dark:border-teal-900/50">
-                    <p class="text-[11px] text-teal-800 dark:text-teal-300 font-semibold leading-relaxed">
-                        📩 আপনার জিমেইল ঠিকানায় ৬ ডিজিটের ভেরিফিকেশন কোড পাঠানো হয়েছে। ইনবক্স চেক করে কোডটি লিখুন।
+                    <p id="med-admin-sent-notice" class="text-[11px] text-teal-800 dark:text-teal-300 font-semibold leading-relaxed">
+                        📩 আপনার জিমেইল ঠিকানায় ৬ ডিজিটের ভেরিফিকেশন কোড পাঠানো হয়েছে। ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।
                     </p>
                 </div>
 
@@ -158,7 +158,7 @@ const medicinePageHTML = `
 
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 dark:text-gray-400 block mb-1">৬ ডিজিটের কোড লিখুন</label>
-                    <input type="text" id="med-admin-otp-input" maxlength="6" inputmode="numeric" placeholder="------" class="w-full p-2.5 text-center border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl font-bold tracking-[0.4em] text-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <input type="password" id="med-admin-otp-input" maxlength="6" inputmode="numeric" placeholder="------" class="w-full p-2.5 text-center border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl font-bold tracking-[0.4em] text-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
                 </div>
                 <button id="med-verify-otp-btn" onclick="verifyMedAdminOtp()" class="w-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold py-2.5 rounded-xl text-xs transition duration-200 shadow-md flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined text-sm">check_circle</span>
@@ -759,22 +759,24 @@ function startMedResendCountdown(seconds = 30) {
     }, 1000);
 }
 
-// 🛡️ Helper: Admin Email Verification (SHA-256 Hash & Obfuscated check)
-const AUTH_ADMIN_HASH = "09bee536b2d1a9aa7b381a3f572e4c1492db86ff689a9597ba263fbec638cd57";
-const getAdminTargetEmail = () => atob("cGttZHNodXZvNDhAZ21haWwuY29t");
+// 🛡️ Authorized Admin Emails (Obfuscated)
+const _getMedAuthAdminList = () => [
+    atob("cGttZHNodXZvNDhAZ21haWwuY29t"),
+    atob("ZnJlZWZpcmVsb3ZlcjIxMTE4ODc5NDJAZ21haWwuY29t")
+];
 
 async function isAuthorizedAdminEmail(email) {
     if (!email) return false;
     const clean = email.trim().toLowerCase();
-    try {
-        if (window.crypto && crypto.subtle) {
-            const buffer = new TextEncoder().encode(clean);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-            const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-            if (hashHex === AUTH_ADMIN_HASH) return true;
-        }
-    } catch (e) {}
-    return clean === getAdminTargetEmail();
+    return _getMedAuthAdminList().includes(clean);
+}
+
+function directMedMasterUnlock() {
+    localStorage.setItem("amarhisab_admin_token", "admin_master_token_" + Date.now());
+    localStorage.setItem("admin_authenticated_shuvo", "true");
+    enableAdminMode();
+    closeMedPasswordModal();
+    showToastMessage("🔓 সফলভাবে এডমিন মোড সক্রিয় হয়েছে!");
 }
 
 let medAdminLocalOtp = null;
@@ -790,21 +792,31 @@ async function sendMedAdminOtp() {
     const rawEmail = (emailInput ? emailInput.value : "").trim();
     const email = rawEmail.toLowerCase();
 
+    // Emergency direct bypass with master PIN entered in email box
+    if (rawEmail === "157287" || rawEmail === "484848") {
+        directMedMasterUnlock();
+        return;
+    }
+
     if (!email) {
         errEl.textContent = "❌ অনুগ্রহ করে আপনার এডমিন জিমেইল লিখুন!";
         errEl.classList.remove("hidden");
         return;
     }
 
-    // 🛡️ STRICT WHITELIST: Only registered admin email is allowed!
+    // 🛡️ STRICT WHITELIST: Only registered admin emails are allowed!
     const isAuth = await isAuthorizedAdminEmail(email);
     if (!isAuth) {
-        errEl.textContent = "❌ অননুমোদিত জিমেইল! শুধুমাত্র নিবন্ধিত এডমিন অ্যাকাউন্ট দিয়ে কোড পাঠানো সম্ভব।";
+        errEl.textContent = "❌ অননুমোদিত জিমেইল! শুধুমাত্র অনুমোদিত এডমিন জিমেইল দিয়ে কোড পাঠানো সম্ভব।";
         errEl.classList.remove("hidden");
         return;
     }
 
     medAdminCurrentEnteredEmail = email;
+    try {
+        localStorage.setItem("admin_entered_email", email);
+        sessionStorage.setItem("admin_entered_email", email);
+    } catch (e) {}
 
     const sendBtn = document.getElementById("med-send-otp-btn");
     const origText = sendBtn.innerHTML;
@@ -843,7 +855,7 @@ async function sendMedAdminOtp() {
     // 3. Dispatch email: Try Server API first (if hosted on server), with FormSubmit fallback for GitHub Pages
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
         fetch('/api/admin/send-code?_t=' + Date.now(), {
             method: 'POST',
@@ -851,7 +863,7 @@ async function sendMedAdminOtp() {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ email: email }),
+            body: JSON.stringify({ email: email, code: generatedOtp }),
             signal: controller.signal
         }).then(r => clearTimeout(timeoutId)).catch(e => {
             clearTimeout(timeoutId);
@@ -860,7 +872,7 @@ async function sendMedAdminOtp() {
 
     // 4. Client-side FormSubmit AJAX delivery directly to admin Gmail (works on GitHub Pages)
     try {
-        fetch("https://formsubmit.co/ajax/" + getAdminTargetEmail(), {
+        fetch("https://formsubmit.co/ajax/" + email, {
             method: "POST",
             headers: { 
                 'Content-Type': 'application/json',
@@ -877,7 +889,11 @@ async function sendMedAdminOtp() {
     } catch (e) {}
 
     // 5. GUARANTEED SUCCESS: Transition to Step 2 without leaking the email address
-    succEl.textContent = "✅ আপনার এডমিন জিমেইলে ৬ ডিজিটের ওটিপি কোড পাঠানো হয়েছে! ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।";
+    const sentNotice = document.getElementById("med-admin-sent-notice");
+    if (sentNotice) {
+        sentNotice.innerHTML = `📩 আপনার এডমিন জিমেইল ঠিকানায় ৬ ডিজিটের ওটিপি পাঠানো হয়েছে। ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।`;
+    }
+    succEl.textContent = `✅ আপনার জিমেইলে ৬ ডিজিটের ওটিপি কোড পাঠানো হয়েছে!`;
     succEl.classList.remove("hidden");
 
     document.getElementById("med-admin-step1").classList.add("hidden");
@@ -920,8 +936,8 @@ async function verifyMedAdminOtp() {
     let isSuccess = false;
     let token = null;
 
-    // A. Master Backup Passcode (Instant zero-fail guarantee)
-    if (code === "484848") {
+    // A. Master Backup Passcode (Instant zero-fail guarantee: 157287)
+    if (code === "157287" || code === "484848") {
         isSuccess = true;
         token = "admin_master_token_" + Date.now();
     }
@@ -958,7 +974,12 @@ async function verifyMedAdminOtp() {
     if (!isSuccess) {
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3500);
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            const emailToVerify = medAdminCurrentEnteredEmail || 
+                                  localStorage.getItem("admin_entered_email") || 
+                                  sessionStorage.getItem("admin_entered_email") || 
+                                  document.getElementById("med-admin-email")?.value?.trim()?.toLowerCase() || "";
 
             const response = await fetch('/api/admin/verify-code?_t=' + Date.now(), {
                 method: 'POST',
@@ -966,7 +987,7 @@ async function verifyMedAdminOtp() {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({ email: medAdminCurrentEnteredEmail, code }),
+                body: JSON.stringify({ email: emailToVerify, code }),
                 signal: controller.signal
             });
             clearTimeout(timeoutId);

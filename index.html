@@ -118,7 +118,7 @@
                 </div>
                 
                 <div class="relative flex items-center gap-2">
-                    <a href="https://weather-topaz-eta-99.vercel.app" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-xl hover:bg-teal-100 shadow-sm border border-teal-100 dark:border-teal-800 transition focus:outline-none" title="আবহাওয়া দেখুন">
+                    <a href="https://24-7-live-weather.vercel.app/" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-xl hover:bg-teal-100 shadow-sm border border-teal-100 dark:border-teal-800 transition focus:outline-none" title="আবহাওয়া দেখুন">
                         🌤️
                     </a>
 
@@ -1009,12 +1009,12 @@
     <script src="notifications.js"></script>
     <script src="stock.js"></script>
     <script src="daily_report.js"></script>
-    <script src="medicine.js?v=19"></script>
+    <script src="medicine.js?v=21"></script>
     
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=19').then(reg => {
+                navigator.serviceWorker.register('sw.js?v=21').then(reg => {
                     reg.update();
                 }).catch(e => console.warn('SW registration warning:', e));
             });

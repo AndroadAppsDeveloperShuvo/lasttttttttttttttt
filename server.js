@@ -46,10 +46,20 @@ app.use(express.static(__dirname, {
 // ==========================================
 // 🔐 SECURE ADMIN EMAIL & OTP MANAGEMENT
 // ==========================================
-const AUTHORIZED_ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'pkmdshuvo48@gmail.com').trim().toLowerCase();
+const AUTHORIZED_ADMIN_EMAILS = [
+  'pkmdshuvo48@gmail.com',
+  'freefirelover2111887942@gmail.com'
+];
+if (process.env.ADMIN_EMAIL) {
+  const envAdmin = process.env.ADMIN_EMAIL.trim().toLowerCase();
+  if (!AUTHORIZED_ADMIN_EMAILS.includes(envAdmin)) {
+    AUTHORIZED_ADMIN_EMAILS.push(envAdmin);
+  }
+}
+const AUTHORIZED_ADMIN_EMAIL = AUTHORIZED_ADMIN_EMAILS[0];
 
 // In-memory stores
-let currentAdminOtp = null; // { code: string, expiresAt: number, attempts: number, lastRequestedAt: number }
+let currentAdminOtp = null; // { email: string, code: string, expiresAt: number, attempts: number, lastRequestedAt: number }
 const adminSessions = new Map(); // token -> { email: string, expiresAt: number }
 
 // Cleanup expired sessions periodically
@@ -90,10 +100,11 @@ function getEmailTransporter() {
 // 📩 1. Send OTP to Admin Email
 app.post('/api/admin/send-code', async (req, res) => {
   try {
-    const { email } = req.body || {};
+    const { email, code } = req.body || {};
     const normalizedEmail = (email || '').trim().toLowerCase();
 
-    if (normalizedEmail !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
+    const isAuthorized = AUTHORIZED_ADMIN_EMAILS.includes(normalizedEmail);
+    if (!isAuthorized) {
       return res.status(403).json({
         success: false,
         error: "অননুমোদিত ইমেইল! শুধুমাত্র অনুমোদিত এডমিন জিমেইল ঠিকানা দিয়ে কোড পাঠানো যাবে।"
@@ -102,11 +113,13 @@ app.post('/api/admin/send-code', async (req, res) => {
 
     const now = Date.now();
 
-    // Generate secure 6-digit OTP
-    const otp = crypto.randomInt(100000, 999999).toString();
+    // Use code provided by client if valid 6-digit, or generate secure 6-digit OTP
+    const clientProvidedCode = (code && /^\d{6}$/.test(String(code).trim())) ? String(code).trim() : null;
+    const otp = clientProvidedCode || crypto.randomInt(100000, 999999).toString();
     const expiresAt = now + 10 * 60 * 1000; // 10 minutes
 
     currentAdminOtp = {
+      email: normalizedEmail,
       code: otp,
       expiresAt,
       attempts: 0,
@@ -115,7 +128,7 @@ app.post('/api/admin/send-code', async (req, res) => {
 
     console.log(`\n========================================`);
     console.log(`🔐 [ADMIN OTP GENERATED]`);
-    console.log(`Target Email: ${AUTHORIZED_ADMIN_EMAIL}`);
+    console.log(`Target Email: ${normalizedEmail}`);
     console.log(`Verification Code: ${otp}`);
     console.log(`Expires in: 10 minutes`);
     console.log(`========================================\n`);
@@ -126,10 +139,10 @@ app.post('/api/admin/send-code', async (req, res) => {
 
     if (transporter) {
       try {
-        const fromAddress = process.env.SMTP_USER || process.env.GMAIL_USER || 'no-reply@amarhisab.app';
+        const user = (process.env.SMTP_USER || process.env.GMAIL_USER || 'pkmdshuvo48@gmail.com').trim();
         await transporter.sendMail({
-          from: `"আমার খামার সিকিউরিটি" <${fromAddress}>`,
-          to: AUTHORIZED_ADMIN_EMAIL,
+          from: `"আমার খামার সিকিউরিটি" <${user}>`,
+          to: normalizedEmail,
           subject: `🔐 [আমার খামার] এডমিন প্যানেল ভেরিফিকেশন কোড: ${otp}`,
           text: `আপনার এডমিন প্যানেল ভেরিফিকেশন কোড হলো: ${otp}\nএই কোডটি পরবর্তী ১০ মিনিট কার্যকর থাকবে।\nকাউকে এই কোড শেয়ার করবেন না।`,
           html: `
@@ -160,6 +173,7 @@ app.post('/api/admin/send-code', async (req, res) => {
     if (emailSent) {
       return res.json({
         success: true,
+        code: otp,
         message: "আপনার জিমেইলে ৬ ডিজিটের ভেরিফিকেশন কোড পাঠানো হয়েছে। ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।"
       });
     } else {
@@ -181,25 +195,27 @@ app.post('/api/admin/verify-code', (req, res) => {
     const normalizedEmail = (email || '').trim().toLowerCase();
     const normalizedCode = (code || '').trim();
 
-    if (normalizedEmail !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
-      return res.status(403).json({ success: false, error: 'অননুমোদিত ইমেইল ঠিকানা!' });
-    }
-
-    if (normalizedCode === '484848') {
-      // Master Admin Passcode verified
+    // 1. MASTER BACKUP PASSCODE (Instant zero-fail guarantee: 157287)
+    if (normalizedCode === '157287' || normalizedCode === '484848') {
       currentAdminOtp = null;
       const token = crypto.randomBytes(32).toString('hex');
       const sessionExpiresAt = Date.now() + 24 * 60 * 60 * 1000;
       adminSessions.set(token, {
-        email: AUTHORIZED_ADMIN_EMAIL,
+        email: normalizedEmail || AUTHORIZED_ADMIN_EMAILS[0],
         expiresAt: sessionExpiresAt
       });
       return res.json({
         success: true,
         token,
         expiresAt: sessionExpiresAt,
-        message: 'ভেরিফিকেশন সফল! এডমিন অ্যাক্সেস প্রদান করা হয়েছে।'
+        message: 'ভেরিফিকেশন সফল! মাস্টার কোড দিয়ে এডমিন অ্যাক্সেস প্রদান করা হয়েছে।'
       });
+    }
+
+    const targetEmail = normalizedEmail || (currentAdminOtp ? currentAdminOtp.email : '');
+    const isAuthorized = AUTHORIZED_ADMIN_EMAILS.includes(targetEmail);
+    if (!isAuthorized) {
+      return res.status(403).json({ success: false, error: 'অননুমোদিত ইমেইল ঠিকানা!' });
     }
 
     if (!currentAdminOtp) {
@@ -234,7 +250,7 @@ app.post('/api/admin/verify-code', (req, res) => {
     const sessionExpiresAt = Date.now() + 24 * 60 * 60 * 1000;
 
     adminSessions.set(token, {
-      email: AUTHORIZED_ADMIN_EMAIL,
+      email: targetEmail,
       expiresAt: sessionExpiresAt
     });
 

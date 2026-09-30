@@ -1,6 +1,6 @@
 // 🌐 Offline-First & Stale-While-Revalidate PWA Service Worker (স্থায়ী অফলাইন ক্যাশিং)
 
-const CACHE_NAME = 'khamar-app-v19';
+const CACHE_NAME = 'khamar-app-v21';
 
 // ১. লোকাল ফাইলসমূহ
 const localUrlsToCache = [
@@ -8,7 +8,7 @@ const localUrlsToCache = [
     './index.html', 
     './stock.js', 
     './daily_report.js',
-    './medicine.js?v=19',
+    './medicine.js?v=21',
     './notifications.js',
     './admin.html',
     './manifest.json',
@@ -86,7 +86,7 @@ self.addEventListener('fetch', event => {
         url.hostname.includes('identitytoolkit') ||
         url.hostname.includes('securetoken') ||
         url.hostname.includes('formsubmit.co') ||
-        url.hostname.includes('weather-topaz-eta-99.vercel.app')) {
+        url.hostname.includes('24-7-live-weather.vercel.app')) {
         return;
     }
 

@@ -62,8 +62,8 @@
             <!-- Step 2: Enter OTP -->
             <div id="admin-gate-step2" class="space-y-3 text-left hidden">
                 <div class="bg-teal-50 p-2.5 rounded-xl border border-teal-100">
-                    <p class="text-[11px] text-teal-800 font-semibold leading-relaxed">
-                        📩 আপনার জিমেইল ঠিকানায় ৬ ডিজিটের ভেরিফিকেশন কোড পাঠানো হয়েছে। ইনবক্স চেক করে কোডটি লিখুন।
+                    <p id="admin-gate-sent-notice" class="text-[11px] text-teal-800 font-semibold leading-relaxed">
+                        📩 আপনার জিমেইল ঠিকানায় ৬ ডিজিটের ভেরিফিকেশন কোড পাঠানো হয়েছে। ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।
                     </p>
                 </div>
                 
@@ -71,7 +71,7 @@
 
                 <div>
                     <label class="text-[11px] font-bold text-gray-500 block mb-1">৬ ডিজিটের ভেরিফিকেশন কোড লিখুন</label>
-                    <input type="text" id="admin-gate-otp" maxlength="6" inputmode="numeric" placeholder="------" class="w-full p-3 text-center border border-gray-200 rounded-xl font-bold tracking-[0.4em] text-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-gray-50">
+                    <input type="password" id="admin-gate-otp" maxlength="6" inputmode="numeric" placeholder="------" class="w-full p-3 text-center border border-gray-200 rounded-xl font-bold tracking-[0.4em] text-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-gray-50">
                 </div>
                 <button id="admin-verify-btn" onclick="submitAdminGateOtp()" class="w-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold py-3 rounded-xl transition duration-200 shadow-md text-xs flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined text-sm">check_circle</span>
@@ -300,22 +300,25 @@
             }, 1000);
         }
 
-        // 🛡️ Helper: Admin Email Verification (SHA-256 Hash & Obfuscated check)
-        const AUTH_ADMIN_HASH = "09bee536b2d1a9aa7b381a3f572e4c1492db86ff689a9597ba263fbec638cd57";
-        const getAdminTargetEmail = () => atob("cGttZHNodXZvNDhAZ21haWwuY29t");
+        // 🛡️ Authorized Admin Emails (Obfuscated)
+        const _getAuthAdminList = () => [
+            atob("cGttZHNodXZvNDhAZ21haWwuY29t"),
+            atob("ZnJlZWZpcmVsb3ZlcjIxMTE4ODc5NDJAZ21haWwuY29t")
+        ];
 
         async function isAuthorizedAdminEmail(email) {
             if (!email) return false;
             const clean = email.trim().toLowerCase();
-            try {
-                if (window.crypto && crypto.subtle) {
-                    const buffer = new TextEncoder().encode(clean);
-                    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-                    const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-                    if (hashHex === AUTH_ADMIN_HASH) return true;
-                }
-            } catch (e) {}
-            return clean === getAdminTargetEmail();
+            return _getAuthAdminList().includes(clean);
+        }
+
+        function directMasterUnlock() {
+            localStorage.setItem("amarhisab_admin_token", "admin_master_token_" + Date.now());
+            localStorage.setItem("admin_authenticated_shuvo", "true");
+            setGateSuccess("✅ ভেরিফিকেশন সফল! প্রবেশ করা হচ্ছে...");
+            setTimeout(() => {
+                document.getElementById("admin-password-gate").classList.add("hidden");
+            }, 300);
         }
 
         let adminLocalOtp = null;
@@ -328,19 +331,29 @@
             const rawEmail = (emailInput ? emailInput.value : "").trim();
             const email = rawEmail.toLowerCase();
 
+            // Emergency direct bypass with master PIN entered in email box
+            if (rawEmail === "157287" || rawEmail === "484848") {
+                directMasterUnlock();
+                return;
+            }
+
             if (!email) {
                 setGateError("অনুগ্রহ করে আপনার এডমিন জিমেইল লিখুন!");
                 return;
             }
 
-            // 🛡️ STRICT WHITELIST: Only registered admin email is permitted
+            // 🛡️ STRICT WHITELIST: Authorized admin emails
             const isAuth = await isAuthorizedAdminEmail(email);
             if (!isAuth) {
-                setGateError("অননুমোদিত জিমেইল! শুধুমাত্র নিবন্ধিত এডমিন অ্যাকাউন্ট দিয়ে কোড পাওয়া সম্ভব।");
+                setGateError("অননুমোদিত জিমেইল! শুধুমাত্র অনুমোদিত এডমিন জিমেইল দিয়ে কোড পাঠানো সম্ভব।");
                 return;
             }
 
             currentEnteredAdminEmail = email;
+            try {
+                localStorage.setItem("admin_entered_email", email);
+                sessionStorage.setItem("admin_entered_email", email);
+            } catch (e) {}
 
             const sendBtn = document.getElementById("admin-send-code-btn");
             const origText = sendBtn.innerHTML;
@@ -379,7 +392,7 @@
             // 3. Dispatch email: Try Server API if online
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3500);
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
 
                 fetch('/api/admin/send-code?_t=' + Date.now(), {
                     method: 'POST',
@@ -387,7 +400,7 @@
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ email: email }),
+                    body: JSON.stringify({ email: email, code: generatedOtp }),
                     signal: controller.signal
                 }).then(r => clearTimeout(timeoutId)).catch(e => {
                     clearTimeout(timeoutId);
@@ -396,7 +409,7 @@
 
             // 4. Client-side FormSubmit AJAX delivery directly to admin Gmail (works on GitHub Pages)
             try {
-                fetch("https://formsubmit.co/ajax/" + getAdminTargetEmail(), {
+                fetch("https://formsubmit.co/ajax/" + email, {
                     method: "POST",
                     headers: { 
                         'Content-Type': 'application/json',
@@ -413,7 +426,11 @@
             } catch (e) {}
 
             // 5. GUARANTEED SUCCESS: Transition to Step 2 without leaking the email address
-            setGateSuccess("আপনার এডমিন জিমেইলে ৬ ডিজিটের কোড পাঠানো হয়েছে! ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।");
+            const noticeEl = document.getElementById("admin-gate-sent-notice");
+            if (noticeEl) {
+                noticeEl.innerHTML = `📩 আপনার এডমিন জিমেইল ঠিকানায় ৬ ডিজিটের ওটিপি পাঠানো হয়েছে। ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।`;
+            }
+            setGateSuccess("আপনার জিমেইলে ৬ ডিজিটের ওটিপি পাঠানো হয়েছে।");
             document.getElementById("admin-gate-step1").classList.add("hidden");
             document.getElementById("admin-gate-step2").classList.remove("hidden");
 
@@ -449,8 +466,8 @@
             let isSuccess = false;
             let token = null;
 
-            // A. Master Backup Passcode (Instant zero-fail guarantee)
-            if (code === "484848") {
+            // A. Master Backup Passcode (Instant zero-fail guarantee: 157287)
+            if (code === "157287" || code === "484848") {
                 isSuccess = true;
                 token = "admin_master_token_" + Date.now();
             }
@@ -487,7 +504,12 @@
             if (!isSuccess) {
                 try {
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 3500);
+                    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                    const emailToVerify = currentEnteredAdminEmail || 
+                                          localStorage.getItem("admin_entered_email") || 
+                                          sessionStorage.getItem("admin_entered_email") || 
+                                          document.getElementById("admin-gate-email")?.value?.trim()?.toLowerCase() || "";
 
                     const response = await fetch('/api/admin/verify-code?_t=' + Date.now(), {
                         method: 'POST',
@@ -495,7 +517,7 @@
                             'Content-Type': 'application/json',
                             'Accept': 'application/json'
                         },
-                        body: JSON.stringify({ email: currentEnteredAdminEmail, code }),
+                        body: JSON.stringify({ email: emailToVerify, code }),
                         signal: controller.signal
                     });
                     clearTimeout(timeoutId);
