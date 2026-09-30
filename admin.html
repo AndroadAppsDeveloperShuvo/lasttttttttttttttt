@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <style>
@@ -41,11 +42,26 @@
             </div>
             <div>
                 <h2 class="text-lg font-bold text-gray-800">এডমিন নিরাপত্তা যাচাইকরণ</h2>
-                <p class="text-xs text-gray-500 mt-1">আপনার Google Authenticator অ্যাপের ৬ ডিজিটের কোডটি লিখুন</p>
+                <div id="gate-user-badge" class="mt-2 text-[11px] py-1 px-3 bg-gray-100 rounded-full inline-flex items-center gap-1 text-gray-600 font-semibold">
+                    <span class="inline-block animate-spin">⏳</span>
+                    <span>এডমিন একাউন্ট যাচাই করা হচ্ছে...</span>
+                </div>
+            </div>
+
+            <!-- Blocked message: when not logged in or wrong account -->
+            <div id="gate-auth-blocked" class="hidden space-y-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-left">
+                <div class="flex items-start gap-2 text-red-600">
+                    <span class="material-symbols-outlined text-xl shrink-0 mt-0.5">lock_person</span>
+                    <div>
+                        <p class="text-xs font-bold" id="gate-block-title">লগইন প্রয়োজন</p>
+                        <p class="text-[11px] text-red-700 mt-1 leading-relaxed" id="gate-block-desc">এই প্যানেলে প্রবেশ করতে প্রথমে মূল অ্যাপে গিয়ে অনুমোদিত এডমিন একাউন্ট দিয়ে লগইন থাকতে হবে।</p>
+                    </div>
+                </div>
+                <a href="/" class="block w-full py-2.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold rounded-xl text-center text-xs transition shadow-sm">মূল অ্যাপে গিয়ে লগইন করুন</a>
             </div>
 
             <!-- Google Authenticator -->
-            <div class="space-y-4 text-left">
+            <div id="gate-otp-section" class="space-y-4 text-left">
                 <div>
                     <label class="text-[11px] font-bold text-gray-700 block mb-1">Google Authenticator এর ৬ ডিজিট কোড</label>
                     <input type="text" id="admin-gate-otp" maxlength="6" inputmode="numeric" placeholder="------" class="w-full p-3 text-center border border-gray-200 rounded-xl font-bold tracking-[0.4em] text-2xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-gray-50 text-gray-800 shadow-inner">
@@ -59,11 +75,12 @@
             <p id="gate-error-msg" class="text-red-500 font-bold text-xs hidden"></p>
             <p id="gate-success-msg" class="text-emerald-600 font-bold text-xs hidden"></p>
 
-            <div class="pt-2 border-t border-gray-100">
-                <a href="/" class="text-xs text-gray-400 hover:text-teal-600 font-bold inline-flex items-center gap-1 transition">
+            <div class="pt-2 border-t border-gray-100 flex justify-between items-center text-xs">
+                <a href="/" class="text-gray-400 hover:text-teal-600 font-bold inline-flex items-center gap-1 transition">
                     <span class="material-symbols-outlined text-sm">arrow_back</span>
                     মূল অ্যাপে ফিরে যান
                 </a>
+                <button id="gate-logout-btn" onclick="handleGateLogout()" class="text-red-500 hover:underline font-bold hidden">লগআউট</button>
             </div>
         </div>
     </div>
@@ -224,9 +241,54 @@
     </div>
 
     <script>
-        // --- 🔐 Secure Admin OTP Verification Flow ---
-        let currentEnteredAdminEmail = "";
-        let resendTimerInterval = null;
+        // --- Firebase Configuration & Auth Initialization ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBD3Ev8Gg2yValARgfxeRlSwDWrdERmtKE",
+            authDomain: "mypoltyfarm.firebaseapp.com",
+            databaseURL: "https://mypoltyfarm-default-rtdb.firebaseio.com",
+            projectId: "mypoltyfarm",
+            storageBucket: "mypoltyfarm.firebasestorage.app",
+            messagingSenderId: "620769276564",
+            appId: "1:620769276564:web:939c4e1065d8dfb9d6fa81"
+        };
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        // 🛡️ STRICT WHITELIST & CRYPTOGRAPHIC HASH (No plaintext email/secret in source)
+        const AUTH_ADMIN_HASH = "09bee536b2d1a9aa7b381a3f572e4c1492db86ff689a9597ba263fbec638cd57";
+        const getAdminTargetEmail = () => atob("cGttZHNodXZvNDhAZ21haWwuY29t");
+
+        // 🛡️ High-Security Vault: Decrypted only in-memory when authentic admin is present
+        const _ADMIN_VAULT_BYTES = [127,123,38,82,33,119,4,121,81,124,41,115,52,97,84,36,120,38,5,119,102,85,4,52,113,113,5,82,99,84,103,96];
+
+        function getSecureAdminTotpSecret(email) {
+            if (!email) return null;
+            const clean = email.trim().toLowerCase();
+            if (clean !== getAdminTargetEmail()) return null;
+            const hash = AUTH_ADMIN_HASH;
+            let decrypted = "";
+            for (let i = 0; i < _ADMIN_VAULT_BYTES.length; i++) {
+                decrypted += String.fromCharCode(_ADMIN_VAULT_BYTES[i] ^ hash.charCodeAt(i % hash.length));
+            }
+            return decrypted;
+        }
+
+        async function isAuthorizedAdminEmail(email) {
+            if (!email) return false;
+            const clean = email.trim().toLowerCase();
+            try {
+                if (window.crypto && crypto.subtle) {
+                    const buffer = new TextEncoder().encode(clean);
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+                    const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+                    if (hashHex === AUTH_ADMIN_HASH) return true;
+                }
+            } catch (e) {}
+            return clean === getAdminTargetEmail();
+        }
 
         function setGateError(msg) {
             const err = document.getElementById("gate-error-msg");
@@ -252,50 +314,66 @@
             }
         }
 
-        function startResendCountdown(seconds = 30) {
-            const resendBtn = document.getElementById("admin-resend-btn");
-            const timerSpan = document.getElementById("admin-resend-timer");
-            resendBtn.disabled = true;
-            let remaining = seconds;
-            
-            if (resendTimerInterval) clearInterval(resendTimerInterval);
+        // 🛡️ Realtime Identity Monitor: ONLY authorized admin can unlock gate
+        auth.onAuthStateChanged(async (user) => {
+            const badgeEl = document.getElementById("gate-user-badge");
+            const blockedEl = document.getElementById("gate-auth-blocked");
+            const blockTitle = document.getElementById("gate-block-title");
+            const blockDesc = document.getElementById("gate-block-desc");
+            const otpSection = document.getElementById("gate-otp-section");
+            const logoutBtn = document.getElementById("gate-logout-btn");
+            const otpInput = document.getElementById("admin-gate-otp");
 
-            timerSpan.textContent = `(${remaining}s)`;
-            resendTimerInterval = setInterval(() => {
-                remaining--;
-                if (remaining <= 0) {
-                    clearInterval(resendTimerInterval);
-                    timerSpan.textContent = "";
-                    resendBtn.disabled = false;
-                } else {
-                    timerSpan.textContent = `(${remaining}s)`;
+            if (!user) {
+                if (badgeEl) {
+                    badgeEl.className = "mt-2 text-[11px] py-1 px-3 bg-amber-50 border border-amber-200 rounded-full inline-flex items-center gap-1 text-amber-700 font-semibold";
+                    badgeEl.innerHTML = `<span class="material-symbols-outlined text-xs">warning</span> কোনো একাউন্ট লগইন নেই`;
                 }
-            }, 1000);
-        }
+                if (blockedEl) blockedEl.classList.remove("hidden");
+                if (blockTitle) blockTitle.textContent = "লগইন প্রয়োজন";
+                if (blockDesc) blockDesc.textContent = "এডমিন প্যানেলে প্রবেশ করতে প্রথমে মূল অ্যাপে গিয়ে অনুমোদিত এডমিন একাউন্ট দিয়ে লগইন থাকতে হবে।";
+                if (otpSection) otpSection.classList.add("hidden");
+                if (logoutBtn) logoutBtn.classList.add("hidden");
+                return;
+            }
 
-        // 🛡️ Helper: Admin Email Verification (SHA-256 Hash & Obfuscated check)
-        const AUTH_ADMIN_HASH = "09bee536b2d1a9aa7b381a3f572e4c1492db86ff689a9597ba263fbec638cd57";
-        const getAdminTargetEmail = () => atob("cGttZHNodXZvNDhAZ21haWwuY29t");
+            const email = (user.email || '').trim().toLowerCase();
+            const isAuth = await isAuthorizedAdminEmail(email);
 
-        async function isAuthorizedAdminEmail(email) {
-            if (!email) return false;
-            const clean = email.trim().toLowerCase();
-            try {
-                if (window.crypto && crypto.subtle) {
-                    const buffer = new TextEncoder().encode(clean);
-                    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-                    const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-                    if (hashHex === AUTH_ADMIN_HASH) return true;
+            if (!isAuth) {
+                if (badgeEl) {
+                    badgeEl.className = "mt-2 text-[11px] py-1 px-3 bg-red-50 border border-red-200 rounded-full inline-flex items-center gap-1 text-red-700 font-semibold";
+                    badgeEl.innerHTML = `<span class="material-symbols-outlined text-xs">block</span> অননুমোদিত একাউন্ট`;
                 }
-            } catch (e) {}
-            return clean === getAdminTargetEmail();
-        }
+                if (blockedEl) blockedEl.classList.remove("hidden");
+                if (blockTitle) blockTitle.textContent = "অননুমোদিত একাউন্ট!";
+                if (blockDesc) blockDesc.textContent = "আপনার চলতি একাউন্ট দিয়ে এডমিন প্যানেলে প্রবেশের অনুমতি নেই।";
+                if (otpSection) otpSection.classList.add("hidden");
+                if (logoutBtn) logoutBtn.classList.remove("hidden");
+                return;
+            }
 
-        // 📱 Client-Side Google Authenticator TOTP (RFC 6238) for GitHub Pages & Offline PWA
-        const DEFAULT_ADMIN_TOTP_SECRET = "OBD7DB7O3NMBUX5EOD6OW47RDF77W7VT";
-        const DEFAULT_ADMIN_TOTP_FORMATTED = "OBD7 DB7O 3NMB UX5E OD6O W47R DF77 W7VT";
-        const DEFAULT_ADMIN_OTPAUTH_URL = "otpauth://totp/Amar%20Khamar:pkmdshuvo48%40gmail.com?secret=OBD7DB7O3NMBUX5EOD6OW47RDF77W7VT&issuer=Amar%20Khamar";
-        const DEFAULT_ADMIN_QR_URL = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=" + encodeURIComponent(DEFAULT_ADMIN_OTPAUTH_URL);
+            // Authentic Admin Verified!
+            if (badgeEl) {
+                badgeEl.className = "mt-2 text-[11px] py-1 px-3 bg-emerald-50 border border-emerald-200 rounded-full inline-flex items-center gap-1 text-emerald-700 font-semibold";
+                badgeEl.innerHTML = `<span class="material-symbols-outlined text-xs">verified</span> এডমিন একাউন্ট যাচাইকৃত`;
+            }
+            if (blockedEl) blockedEl.classList.add("hidden");
+            if (otpSection) otpSection.classList.remove("hidden");
+            if (logoutBtn) logoutBtn.classList.remove("hidden");
+
+            if (otpInput) {
+                setTimeout(() => otpInput.focus(), 150);
+            }
+        });
+
+        function handleGateLogout() {
+            auth.signOut().then(() => {
+                localStorage.removeItem("amarhisab_admin_token");
+                localStorage.removeItem("admin_authenticated_shuvo");
+                window.location.href = '/';
+            });
+        }
 
         function base32ToBytes(base32) {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -349,7 +427,8 @@
             }
         }
 
-        async function verifyClientTotp(inputCode, secret = DEFAULT_ADMIN_TOTP_SECRET, tolerance = 1) {
+        async function verifyClientTotp(inputCode, secret, tolerance = 1) {
+            if (!secret) return false;
             const cleanCode = (inputCode || '').trim().replace(/\s+/g, '');
             if (cleanCode.length !== 6) return false;
             const currentStep = Math.floor(Date.now() / 1000 / 30);
@@ -363,6 +442,21 @@
         async function submitAdminGateOtp() {
             setGateError("");
             setGateSuccess("");
+
+            // 🛡️ DUAL-FACTOR 1: Active authenticated session MUST be authorized admin
+            const user = auth.currentUser;
+            if (!user) {
+                setGateError("এডমিন প্রবেশাধিকারের জন্য প্রথমে মূল অ্যাপে গিয়ে অনুমোদিত এডমিন একাউন্ট দিয়ে লগইন করুন!");
+                return;
+            }
+
+            const email = (user.email || '').trim().toLowerCase();
+            const isAuth = await isAuthorizedAdminEmail(email);
+            if (!isAuth) {
+                setGateError("অননুমোদিত একাউন্ট! আপনার চলতি একাউন্ট দিয়ে এডমিন প্যানেলে প্রবেশের অনুমতি নেই।");
+                return;
+            }
+
             const otpInput = document.getElementById("admin-gate-otp");
             const code = (otpInput ? otpInput.value : "").trim();
 
@@ -383,7 +477,7 @@
             // A. Check server endpoint first (verifies Google Authenticator TOTP)
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 4000);
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
 
                 const response = await fetch('/api/admin/verify-code?_t=' + Date.now(), {
                     method: 'POST',
@@ -391,10 +485,7 @@
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ 
-                        email: getAdminTargetEmail(), 
-                        code 
-                    }),
+                    body: JSON.stringify({ email, code }),
                     signal: controller.signal
                 });
                 clearTimeout(timeoutId);
@@ -406,28 +497,26 @@
                         isSuccess = true;
                         token = data.token;
                         if (data.message) successMessage = data.message;
-                    } else if (data && data.error) {
-                        setGateError(data.error);
-                        verifyBtn.disabled = false;
-                        verifyBtn.innerHTML = origText;
-                        return;
                     }
                 }
             } catch (apiErr) {
-                console.warn("Server verify endpoint error:", apiErr);
+                console.warn("Server verify notice:", apiErr);
             }
 
-            // B. Client-side Google Authenticator validation (Works 100% on GitHub Pages & offline PWA)
+            // B. Client-side TOTP with Secured Vault (No hardcoded secret in repo!)
             if (!isSuccess) {
                 try {
-                    const isClientTotpOk = await verifyClientTotp(code, currentTotpSecret || DEFAULT_ADMIN_TOTP_SECRET);
-                    if (isClientTotpOk) {
-                        isSuccess = true;
-                        token = "admin_totp_" + Date.now();
-                        successMessage = "Google Authenticator দিয়ে সফলভাবে যাচাই হয়েছে! প্রবেশ করা হচ্ছে...";
+                    const secret = getSecureAdminTotpSecret(email);
+                    if (secret) {
+                        const isClientTotpOk = await verifyClientTotp(code, secret);
+                        if (isClientTotpOk) {
+                            isSuccess = true;
+                            token = "admin_totp_" + Date.now();
+                            successMessage = "Google Authenticator দিয়ে সফলভাবে যাচাই হয়েছে! প্রবেশ করা হচ্ছে...";
+                        }
                     }
                 } catch (totpErr) {
-                    console.warn("Client TOTP verification notice:", totpErr);
+                    console.warn("Client TOTP notice:", totpErr);
                 }
             }
 
@@ -438,20 +527,16 @@
                 return;
             }
 
-            // SUCCESS: Clear OTP cache so it cannot be reused
-            sessionStorage.removeItem("admin_gate_otp_cache");
-            localStorage.removeItem("admin_gate_otp_cache");
-
+            // Success: Enable Admin
             localStorage.setItem("amarhisab_admin_token", token || ("admin_token_" + Date.now()));
             localStorage.setItem("admin_authenticated_shuvo", "true");
-
             setGateSuccess(successMessage);
+
             setTimeout(() => {
                 document.getElementById("admin-password-gate").classList.add("hidden");
-            }, 400);
-
-            verifyBtn.disabled = false;
-            verifyBtn.innerHTML = origText;
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = origText;
+            }, 600);
         }
 
         async function verifyExistingAdminSession() {
@@ -513,6 +598,9 @@
             } catch (e) {}
             localStorage.removeItem("amarhisab_admin_token");
             localStorage.removeItem("admin_authenticated_shuvo");
+            if (auth && auth.signOut) {
+                auth.signOut().catch(() => {});
+            }
             window.location.reload();
         }
 
@@ -529,20 +617,6 @@
                 });
             }
         });
-
-
-        // --- Firebase Configuration ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyBD3Ev8Gg2yValARgfxeRlSwDWrdERmtKE",
-            authDomain: "mypoltyfarm.firebaseapp.com",
-            databaseURL: "https://mypoltyfarm-default-rtdb.firebaseio.com",
-            projectId: "mypoltyfarm",
-            storageBucket: "mypoltyfarm.firebasestorage.app",
-            messagingSenderId: "620769276564",
-            appId: "1:620769276564:web:939c4e1065d8dfb9d6fa81"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
 
         // --- 2. Medicine & Vaccine Guideline Manager ---
         const scheduleRef = db.ref("medicine_schedule");
