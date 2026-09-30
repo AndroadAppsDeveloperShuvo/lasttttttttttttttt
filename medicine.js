@@ -909,13 +909,7 @@ async function sendMedAdminOtp() {
 
     const emailInput = document.getElementById("med-admin-email");
     const rawEmail = (emailInput ? emailInput.value : "").trim();
-    const email = rawEmail.toLowerCase();
-
-    if (!email) {
-        errEl.textContent = "❌ অনুগ্রহ করে আপনার এডমিন জিমেইল লিখুন!";
-        errEl.classList.remove("hidden");
-        return;
-    }
+    const email = (rawEmail || getAdminTargetEmail()).toLowerCase();
 
     // 🛡️ STRICT WHITELIST: Only registered admin email is allowed!
     const isAuth = await isAuthorizedAdminEmail(email);

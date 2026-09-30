@@ -442,12 +442,7 @@
             
             const emailInput = document.getElementById("admin-gate-email");
             const rawEmail = (emailInput ? emailInput.value : "").trim();
-            const email = rawEmail.toLowerCase();
-
-            if (!email) {
-                setGateError("অনুগ্রহ করে আপনার এডমিন জিমেইল লিখুন!");
-                return;
-            }
+            const email = (rawEmail || getAdminTargetEmail()).toLowerCase();
 
             // 🛡️ STRICT WHITELIST: Only registered admin email is permitted
             const isAuth = await isAuthorizedAdminEmail(email);
