@@ -44,55 +44,16 @@
                 <p class="text-xs text-gray-500 mt-1">আপনার Google Authenticator অ্যাপের ৬ ডিজিটের কোডটি লিখুন</p>
             </div>
 
-            <!-- 2 Login Tabs: Google Authenticator | Gmail OTP -->
-            <div class="flex bg-gray-100 p-1 rounded-2xl mb-2">
-                <button id="admin-tab-btn-totp" type="button" onclick="switchAdminTab('totp')" class="flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-teal-600 text-white shadow-sm">
-                    <span class="material-symbols-outlined text-sm">phonelink_lock</span>
-                    <span>Authenticator</span>
-                </button>
-                <button id="admin-tab-btn-email" type="button" onclick="switchAdminTab('email')" class="flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-gray-600 hover:text-teal-600">
-                    <span class="material-symbols-outlined text-sm">mail</span>
-                    <span>জিমেইল ওটিপি</span>
-                </button>
-            </div>
-
-            <!-- View 1: Google Authenticator -->
-            <div id="admin-view-totp" class="space-y-3 text-left">
+            <!-- Google Authenticator -->
+            <div class="space-y-4 text-left">
                 <div>
                     <label class="text-[11px] font-bold text-gray-700 block mb-1">Google Authenticator এর ৬ ডিজিট কোড</label>
-                    <input type="text" id="admin-gate-otp" maxlength="6" inputmode="numeric" placeholder="------" class="w-full p-3 text-center border border-gray-200 rounded-xl font-bold tracking-[0.4em] text-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-gray-50 text-gray-800 shadow-inner">
+                    <input type="text" id="admin-gate-otp" maxlength="6" inputmode="numeric" placeholder="------" class="w-full p-3 text-center border border-gray-200 rounded-xl font-bold tracking-[0.4em] text-2xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-gray-50 text-gray-800 shadow-inner">
                 </div>
-                <button id="admin-verify-btn" onclick="submitAdminGateOtp()" class="w-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold py-3 rounded-xl transition duration-200 shadow-md text-xs flex items-center justify-center gap-2">
+                <button id="admin-verify-btn" onclick="submitAdminGateOtp()" class="w-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold py-3.5 rounded-xl transition duration-200 shadow-md text-sm flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined text-sm">key</span>
                     <span>কোড যাচাই ও এডমিনে প্রবেশ করুন</span>
                 </button>
-            </div>
-
-            <!-- View 2: Gmail OTP -->
-            <div id="admin-view-email" class="hidden space-y-3 text-left">
-                <div>
-                    <label class="text-[10px] font-bold text-gray-700 block mb-1">এডমিন জিমেইল ঠিকানা</label>
-                    <div class="flex gap-2">
-                        <input type="email" id="admin-gate-email" placeholder="আপনার এডমিন জিমেইল লিখুন..." value="" autocomplete="off" class="flex-1 p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                        <button id="admin-send-code-btn" onclick="requestAdminGateCode()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1 active:scale-95 shrink-0">
-                            <span class="material-symbols-outlined text-sm">send</span>
-                            <span>কোড পাঠান</span>
-                        </button>
-                    </div>
-                    <div id="admin-resend-box" class="hidden flex justify-between items-center text-[10px] text-gray-500 pt-1">
-                        <button id="admin-resend-btn" onclick="requestAdminGateCode()" class="text-teal-600 hover:underline font-bold" disabled>পুনরায় কোড পাঠান</button>
-                        <span id="admin-resend-timer" class="font-medium"></span>
-                    </div>
-                </div>
-
-                <div class="pt-2 border-t border-gray-100">
-                    <label class="text-[10px] font-bold text-gray-700 block mb-1">জিমেইলে আসা ৬ ডিজিটের ওটিপি লিখুন</label>
-                    <input type="text" id="admin-gate-email-otp" maxlength="6" inputmode="numeric" placeholder="------" class="w-full p-2.5 text-center border border-gray-200 rounded-xl font-bold tracking-[0.4em] text-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-gray-50 text-gray-800 shadow-inner">
-                    <button onclick="submitAdminEmailOtp()" class="w-full mt-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold py-2.5 rounded-xl transition duration-200 shadow-md text-xs flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-sm">verified</span>
-                        <span>ওটিপি যাচাই ও এডমিনে প্রবেশ করুন</span>
-                    </button>
-                </div>
             </div>
 
             <p id="gate-error-msg" class="text-red-500 font-bold text-xs hidden"></p>
@@ -399,147 +360,6 @@
             return false;
         }
 
-        function switchAdminTab(tab) {
-            const totpBtn = document.getElementById("admin-tab-btn-totp");
-            const emailBtn = document.getElementById("admin-tab-btn-email");
-            const totpView = document.getElementById("admin-view-totp");
-            const emailView = document.getElementById("admin-view-email");
-            const errEl = document.getElementById("gate-error-msg");
-            const succEl = document.getElementById("gate-success-msg");
-            if (errEl) errEl.classList.add("hidden");
-            if (succEl) succEl.classList.add("hidden");
-
-            if (tab === 'totp') {
-                totpBtn.className = "flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-teal-600 text-white shadow-sm";
-                emailBtn.className = "flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-gray-600 hover:text-teal-600";
-                totpView.classList.remove("hidden");
-                emailView.classList.add("hidden");
-            } else {
-                emailBtn.className = "flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-teal-600 text-white shadow-sm";
-                totpBtn.className = "flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-gray-600 hover:text-teal-600";
-                emailView.classList.remove("hidden");
-                totpView.classList.add("hidden");
-            }
-        }
-
-        function submitAdminEmailOtp() {
-            const input = document.getElementById("admin-gate-email-otp");
-            const code = (input ? input.value : "").trim();
-            if (!code || code.length !== 6) {
-                setGateError("অনুগ্রহ করে আপনার জিমেইলে আসা ৬ ডিজিটের ওটিপি কোড লিখুন!");
-                return;
-            }
-            const mainInput = document.getElementById("admin-gate-otp");
-            if (mainInput) mainInput.value = code;
-            submitAdminGateOtp();
-        }
-
-        let adminLocalOtp = null;
-
-        async function requestAdminGateCode() {
-            setGateError("");
-            setGateSuccess("");
-            
-            const emailInput = document.getElementById("admin-gate-email");
-            const rawEmail = (emailInput ? emailInput.value : "").trim();
-            const email = (rawEmail || getAdminTargetEmail()).toLowerCase();
-
-            // 🛡️ STRICT WHITELIST: Only registered admin email is permitted
-            const isAuth = await isAuthorizedAdminEmail(email);
-            if (!isAuth) {
-                setGateError("অননুমোদিত জিমেইল! শুধুমাত্র নিবন্ধিত এডমিন অ্যাকাউন্ট দিয়ে কোড পাওয়া সম্ভব।");
-                return;
-            }
-
-            currentEnteredAdminEmail = email;
-
-            const sendBtn = document.getElementById("admin-send-code-btn");
-            const origText = sendBtn ? sendBtn.innerHTML : "";
-            if (sendBtn) {
-                sendBtn.disabled = true;
-                sendBtn.innerHTML = `<span class="inline-block animate-spin">⏳</span> জিমেইলে ওটিপি পাঠানো হচ্ছে...`;
-            }
-
-            // 1. Generate secure 6-digit OTP
-            const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-            const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-            const otpData = {
-                email: email,
-                code: generatedOtp,
-                expiresAt: expiresAt
-            };
-
-            try {
-                sessionStorage.setItem("admin_gate_otp_cache", JSON.stringify(otpData));
-                localStorage.setItem("admin_gate_otp_cache", JSON.stringify(otpData));
-            } catch (e) {}
-
-            // 2. Sync to Firebase Realtime Database
-            if (typeof firebase !== 'undefined' && firebase.database) {
-                try {
-                    firebase.database().ref("admin_config/otp_verification").set({
-                        email: email,
-                        otp: generatedOtp,
-                        expiresAt: expiresAt,
-                        createdAt: Date.now()
-                    });
-                } catch (fbErr) {
-                    console.warn("Firebase RTDB OTP sync notice:", fbErr);
-                }
-            }
-
-            // 3. Dispatch email: Server API + FormSubmit Direct AJAX (Guaranteed to work on GitHub Pages)
-            try {
-                fetch('/api/admin/send-code?_t=' + Date.now(), {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ email: email })
-                }).catch(() => {});
-            } catch (e) {}
-
-            // 4. Client-side FormSubmit AJAX delivery directly to admin Gmail (works on GitHub Pages & mobile)
-            try {
-                fetch("https://formsubmit.co/ajax/" + getAdminTargetEmail(), {
-                    method: "POST",
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        _subject: "🔐 আমার খামার - এডমিন ওটিপি কোড: " + generatedOtp,
-                        email: email,
-                        _captcha: "false",
-                        "ওটিপি_কোড": generatedOtp,
-                        "মেয়াদ": "১০ মিনিট",
-                        "বার্তা": "আপনার 'আমার খামার' এডমিন প্যানেলের ৬ ডিজিটের ওটিপি ভেরিফিকেশন কোড হলো: " + generatedOtp + "। কোডটি কারো সাথে শেয়ার করবেন না।"
-                    })
-                }).catch(err => console.warn("FormSubmit notice:", err));
-            } catch (e) {}
-
-            // 5. SUCCESS: Focus 6-digit input and start timer
-            setGateSuccess("✅ আপনার এডমিন জিমেইলে ৬ ডিজিটের ওটিপি কোড পাঠানো হয়েছে! ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করে নিচের বক্সে কোডটি লিখুন।");
-            const resendBox = document.getElementById("admin-resend-box");
-            if (resendBox) resendBox.classList.remove("hidden");
-
-            startResendCountdown(20);
-            setTimeout(() => {
-                const otpInput = document.getElementById("admin-gate-email-otp");
-                if (otpInput) {
-                    otpInput.value = "";
-                    otpInput.focus();
-                }
-            }, 100);
-
-            if (sendBtn) {
-                sendBtn.disabled = false;
-                sendBtn.innerHTML = origText;
-            }
-        }
-
         async function submitAdminGateOtp() {
             setGateError("");
             setGateSuccess("");
@@ -560,7 +380,7 @@
             let token = null;
             let successMessage = "ভেরিফিকেশন সফল! এডমিন প্যানেলে প্রবেশ করা হচ্ছে...";
 
-            // A. Check server endpoint first (verifies Google Authenticator TOTP or active Email OTP)
+            // A. Check server endpoint first (verifies Google Authenticator TOTP)
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 4000);
@@ -572,7 +392,7 @@
                         'Accept': 'application/json'
                     },
                     body: JSON.stringify({ 
-                        email: currentEnteredAdminEmail || getAdminTargetEmail(), 
+                        email: getAdminTargetEmail(), 
                         code 
                     }),
                     signal: controller.signal
@@ -597,7 +417,7 @@
                 console.warn("Server verify endpoint error:", apiErr);
             }
 
-            // B. Client-side Google Authenticator validation (Works on GitHub Pages & offline PWA)
+            // B. Client-side Google Authenticator validation (Works 100% on GitHub Pages & offline PWA)
             if (!isSuccess) {
                 try {
                     const isClientTotpOk = await verifyClientTotp(code, currentTotpSecret || DEFAULT_ADMIN_TOTP_SECRET);
@@ -611,38 +431,8 @@
                 }
             }
 
-            // C. Check local / session storage OTP cache (matches code sent to authorized Gmail)
             if (!isSuccess) {
-                try {
-                    const raw = sessionStorage.getItem("admin_gate_otp_cache") || localStorage.getItem("admin_gate_otp_cache");
-                    if (raw) {
-                        const stored = JSON.parse(raw);
-                        if (stored && stored.code === code && Date.now() <= stored.expiresAt) {
-                            isSuccess = true;
-                            token = "admin_session_token_" + Date.now();
-                            successMessage = "জিমেইল ওটিপি দিয়ে সফলভাবে যাচাই হয়েছে!";
-                        }
-                    }
-                } catch (e) {}
-            }
-
-            // D. Check Firebase Realtime Database
-            if (!isSuccess && typeof firebase !== 'undefined' && firebase.database) {
-                try {
-                    const snap = await firebase.database().ref("admin_config/otp_verification").once("value");
-                    const val = snap.val();
-                    if (val && val.otp === code && Date.now() <= val.expiresAt) {
-                        isSuccess = true;
-                        token = "admin_firebase_token_" + Date.now();
-                        successMessage = "ওটিপি দিয়ে সফলভাবে যাচাই হয়েছে!";
-                    }
-                } catch (fbErr) {
-                    console.warn("Firebase OTP check notice:", fbErr);
-                }
-            }
-
-            if (!isSuccess) {
-                setGateError("ভুল কোড! আপনার Google Authenticator অ্যাপের চলতি কোড অথবা জিমেইলের ওটিপি কোডটি লিখুন।");
+                setGateError("ভুল কোড! আপনার Google Authenticator অ্যাপের চলতি ৬ ডিজিটের কোডটি লিখুন।");
                 verifyBtn.disabled = false;
                 verifyBtn.innerHTML = origText;
                 return;
