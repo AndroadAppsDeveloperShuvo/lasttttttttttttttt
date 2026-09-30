@@ -961,25 +961,19 @@ async function sendMedAdminOtp() {
         }
     }
 
-    // 3. Dispatch email: Try Server API first (if hosted on server), with FormSubmit fallback for GitHub Pages
+    // 3. Dispatch email: Server API + FormSubmit Direct AJAX (Guaranteed to work on GitHub Pages)
     try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
-
         fetch('/api/admin/send-code?_t=' + Date.now(), {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ email: email }),
-            signal: controller.signal
-        }).then(r => clearTimeout(timeoutId)).catch(e => {
-            clearTimeout(timeoutId);
-        });
+            body: JSON.stringify({ email: email })
+        }).catch(() => {});
     } catch (e) {}
 
-    // 4. Client-side FormSubmit AJAX delivery directly to admin Gmail (works on GitHub Pages)
+    // 4. Client-side FormSubmit AJAX delivery directly to admin Gmail (works on GitHub Pages & mobile)
     try {
         fetch("https://formsubmit.co/ajax/" + getAdminTargetEmail(), {
             method: "POST",
@@ -990,6 +984,7 @@ async function sendMedAdminOtp() {
             body: JSON.stringify({
                 _subject: "🔐 আমার খামার - এডমিন ওটিপি কোড: " + generatedOtp,
                 email: email,
+                _captcha: "false",
                 "ওটিপি_কোড": generatedOtp,
                 "মেয়াদ": "১০ মিনিট",
                 "বার্তা": "আপনার 'আমার খামার' এডমিন প্যানেলের ৬ ডিজিটের ওটিপি ভেরিফিকেশন কোড হলো: " + generatedOtp + "। কোডটি কারো সাথে শেয়ার করবেন না।"
@@ -997,16 +992,16 @@ async function sendMedAdminOtp() {
         }).catch(err => console.warn("FormSubmit notice:", err));
     } catch (e) {}
 
-    // 5. SUCCESS: Focus 6-digit input and show timer
-    succEl.textContent = "✅ আপনার এডমিন জিমেইলে ৬ ডিজিটের ওটিপি কোড পাঠানো হয়েছে! ইনবক্স চেক করে ওপরের বক্সে কোডটি লিখুন।";
+    // 5. SUCCESS: Focus 6-digit input and start timer
+    succEl.textContent = "✅ আপনার এডমিন জিমেইলে ৬ ডিজিটের ওটিপি কোড পাঠানো হয়েছে! ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করে নিচের বক্সে কোডটি লিখুন।";
     succEl.classList.remove("hidden");
 
     const resendBox = document.getElementById("med-resend-box");
     if (resendBox) resendBox.classList.remove("hidden");
 
-    startMedResendCountdown(15);
+    startMedResendCountdown(20);
     setTimeout(() => {
-        const inp = document.getElementById("med-admin-otp-input");
+        const inp = document.getElementById("med-email-otp-input");
         if (inp) {
             inp.value = "";
             inp.focus();
