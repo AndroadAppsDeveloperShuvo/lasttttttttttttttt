@@ -803,7 +803,77 @@ function clickMedMenu(type) {
 }
 
 let medAdminCurrentEnteredEmail = "";
-let currentMedTotpSecret = "";
+
+// 📱 Client-Side Google Authenticator TOTP (RFC 6238) for GitHub Pages & Offline PWA
+const DEFAULT_MED_TOTP_SECRET = "OBD7DB7O3NMBUX5EOD6OW47RDF77W7VT";
+const DEFAULT_MED_TOTP_FORMATTED = "OBD7 DB7O 3NMB UX5E OD6O W47R DF77 W7VT";
+const DEFAULT_MED_OTPAUTH_URL = "otpauth://totp/Amar%20Khamar:pkmdshuvo48%40gmail.com?secret=OBD7DB7O3NMBUX5EOD6OW47RDF77W7VT&issuer=Amar%20Khamar";
+const DEFAULT_MED_QR_URL = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=" + encodeURIComponent(DEFAULT_MED_OTPAUTH_URL);
+
+let currentMedTotpSecret = DEFAULT_MED_TOTP_SECRET;
+
+function base32ToBytes(base32) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    let bits = '';
+    const clean = (base32 || '').toUpperCase().replace(/=+$/, '').replace(/\s+/g, '');
+    for (let i = 0; i < clean.length; i++) {
+        const val = chars.indexOf(clean[i]);
+        if (val === -1) return null;
+        bits += val.toString(2).padStart(5, '0');
+    }
+    const bytes = [];
+    for (let i = 0; i + 8 <= bits.length; i += 8) {
+        bytes.push(parseInt(bits.substr(i, 8), 2));
+    }
+    return new Uint8Array(bytes);
+}
+
+async function generateTotpCode(secret, epochSeconds = Math.floor(Date.now() / 1000), timeStep = 30) {
+    try {
+        if (!window.crypto || !crypto.subtle) return null;
+        const keyBytes = base32ToBytes(secret);
+        if (!keyBytes) return null;
+        const cryptoKey = await crypto.subtle.importKey(
+            'raw',
+            keyBytes,
+            { name: 'HMAC', hash: 'SHA-1' },
+            false,
+            ['sign']
+        );
+
+        const counter = Math.floor(epochSeconds / timeStep);
+        const counterBuffer = new ArrayBuffer(8);
+        const view = new DataView(counterBuffer);
+        view.setUint32(0, Math.floor(counter / 0x100000000));
+        view.setUint32(4, counter >>> 0);
+
+        const signature = await crypto.subtle.sign('HMAC', cryptoKey, counterBuffer);
+        const sigBytes = new Uint8Array(signature);
+        const offset = sigBytes[sigBytes.length - 1] & 0x0f;
+
+        const binary =
+            ((sigBytes[offset] & 0x7f) << 24) |
+            ((sigBytes[offset + 1] & 0xff) << 16) |
+            ((sigBytes[offset + 2] & 0xff) << 8) |
+            (sigBytes[offset + 3] & 0xff);
+
+        return (binary % 1000000).toString().padStart(6, '0');
+    } catch (e) {
+        console.error("Client TOTP generation error:", e);
+        return null;
+    }
+}
+
+async function verifyClientTotp(inputCode, secret = DEFAULT_MED_TOTP_SECRET, tolerance = 1) {
+    const cleanCode = (inputCode || '').trim().replace(/\s+/g, '');
+    if (cleanCode.length !== 6) return false;
+    const currentStep = Math.floor(Date.now() / 1000 / 30);
+    for (let i = -tolerance; i <= tolerance; i++) {
+        const code = await generateTotpCode(secret, (currentStep + i) * 30);
+        if (code === cleanCode) return true;
+    }
+    return false;
+}
 
 function openMedPasswordModal() {
     const modal = document.getElementById("med-password-modal");
@@ -836,42 +906,49 @@ function toggleMedEmailSection() {
     }
 }
 
-async function openMedTotpModal() {
+function openMedTotpModal() {
     const modal = document.getElementById("med-totp-setup-modal");
     if (!modal) return;
     modal.classList.remove("hidden");
 
+    currentMedTotpSecret = DEFAULT_MED_TOTP_SECRET;
+
     const qrImg = document.getElementById("med-totp-qr-img");
     const loading = document.getElementById("med-totp-qr-loading");
     const secretText = document.getElementById("med-totp-secret-text");
+    const appBtn = document.getElementById("med-totp-open-app-btn");
 
-    if (qrImg) qrImg.classList.add("hidden");
-    if (loading) loading.classList.remove("hidden");
+    // INSTANTLY render default values so it NEVER gets stuck on "লোড হচ্ছে..."!
+    if (secretText) {
+        secretText.textContent = DEFAULT_MED_TOTP_FORMATTED;
+    }
+    if (appBtn) {
+        appBtn.href = DEFAULT_MED_OTPAUTH_URL;
+    }
+    if (qrImg) {
+        qrImg.src = DEFAULT_MED_QR_URL;
+        qrImg.classList.remove("hidden");
+        if (loading) loading.classList.add("hidden");
+    }
 
-    try {
-        const res = await fetch('/api/admin/totp-setup?_t=' + Date.now());
-        const data = await res.json();
+    // Sync from server if available
+    fetch('/api/admin/totp-setup?_t=' + Date.now()).then(r => r.json()).then(data => {
         if (data && data.success) {
             currentMedTotpSecret = data.secret;
-            if (qrImg) {
+            if (secretText) secretText.textContent = data.secretFormatted || data.secret;
+            const directBtn = document.getElementById("med-totp-open-app-btn");
+            if (directBtn && data.otpauthUrl) {
+                directBtn.href = data.otpauthUrl;
+            }
+            if (qrImg && data.qrCode) {
                 qrImg.src = data.qrCode;
                 qrImg.classList.remove("hidden");
+                if (loading) loading.classList.add("hidden");
             }
-            if (loading) loading.classList.add("hidden");
-            if (secretText) {
-                secretText.textContent = data.secretFormatted || data.secret;
-            }
-            const appBtn = document.getElementById("med-totp-open-app-btn");
-            if (appBtn && data.otpauthUrl) {
-                appBtn.href = data.otpauthUrl;
-            }
-        } else {
-            if (loading) loading.textContent = "❌ QR কোড লোড হতে সমস্যা হয়েছে।";
         }
-    } catch (e) {
-        console.error("Failed to load TOTP setup:", e);
-        if (loading) loading.textContent = "❌ সার্ভারের সাথে কানেক্ট করা যায়নি।";
-    }
+    }).catch(e => {
+        // Fallback already visible
+    });
 }
 
 function closeMedTotpModal() {
@@ -1115,7 +1192,21 @@ async function verifyMedAdminOtp() {
         console.warn("Server verify endpoint error:", apiErr);
     }
 
-    // B. Check local / session storage OTP cache (matches code sent to authorized Gmail)
+    // B. Client-side Google Authenticator validation (Works on GitHub Pages & offline PWA)
+    if (!isSuccess) {
+        try {
+            const isClientTotpOk = await verifyClientTotp(code, currentMedTotpSecret || DEFAULT_MED_TOTP_SECRET);
+            if (isClientTotpOk) {
+                isSuccess = true;
+                token = "admin_totp_" + Date.now();
+                successMessage = "🔓 Google Authenticator দিয়ে সফলভাবে যাচাই হয়েছে!";
+            }
+        } catch (totpErr) {
+            console.warn("Client TOTP verification notice:", totpErr);
+        }
+    }
+
+    // C. Check local / session storage OTP cache (matches code sent to authorized Gmail)
     if (!isSuccess) {
         try {
             const raw = sessionStorage.getItem("med_admin_otp_cache") || localStorage.getItem("med_admin_otp_cache");
@@ -1130,7 +1221,7 @@ async function verifyMedAdminOtp() {
         } catch (e) {}
     }
 
-    // C. Check Firebase Realtime Database
+    // D. Check Firebase Realtime Database
     if (!isSuccess && typeof firebase !== 'undefined' && firebase.database) {
         try {
             const snap = await firebase.database().ref("admin_config/otp_verification").once("value");
@@ -1191,7 +1282,7 @@ async function checkMedAdminSession() {
         enableAdminMode();
     }
 
-    if (token && !token.startsWith("admin_local_")) {
+    if (token && !token.startsWith("admin_local_") && !token.startsWith("admin_totp_")) {
         try {
             const response = await fetch('/api/admin/check-session', {
                 method: 'POST',
