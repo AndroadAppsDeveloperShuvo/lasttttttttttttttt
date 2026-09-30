@@ -275,7 +275,7 @@
 
         <div id="add-shipment-button-container" class="fixed bottom-24 right-6 z-20"><button onclick="navigate('add-shipment-page')" class="w-14 h-14 rounded-full bg-teal-700 text-white shadow-xl flex items-center justify-center transform transition hover:scale-110 active:scale-95"><span class="material-symbols-outlined text-3xl">add</span></button></div>
 
-        <nav class="absolute bottom-0 left-0 right-0 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700"><div class="flex h-16 items-center justify-around"><a href="#" onclick="navigateToTab('dashboard')" class="flex flex-col items-center gap-1 text-teal-700 dark:text-teal-400 nav-item" id="nav-dashboard"><span class="material-symbols-outlined">dashboard</span><span class="text-[10px] font-bold">ড্যাশবোর্ড</span></a><a href="#" onclick="navigateToTab('shipments-page')" class="flex flex-col items-center gap-1 text-gray-400 nav-item" id="nav-shipments-page"><span class="material-symbols-outlined">list_alt</span><span class="text-[10px] font-bold">চালান</span></a><a href="#" onclick="navigateToTab('medicine-page')" class="flex flex-col items-center gap-1 text-gray-400 nav-item" id="nav-medicine-page"><span class="material-symbols-outlined">vaccines</span><span class="text-[10px] font-bold">ঔষধ</span></a><a href="#" onclick="navigateToTab('settings-page')" class="flex flex-col items-center gap-1 text-gray-400 nav-item" id="nav-settings-page"><span class="material-symbols-outlined">settings</span><span class="text-[10px] font-bold">সেটিংস</span></a></div></nav>
+        <nav class="absolute bottom-0 left-0 right-0 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700"><div class="flex h-16 items-center justify-around"><a href="javascript:void(0)" onclick="navigateToTab('dashboard', event)" class="flex flex-col items-center gap-1 text-teal-700 dark:text-teal-400 nav-item" id="nav-dashboard"><span class="material-symbols-outlined">dashboard</span><span class="text-[10px] font-bold">ড্যাশবোর্ড</span></a><a href="javascript:void(0)" onclick="navigateToTab('shipments-page', event)" class="flex flex-col items-center gap-1 text-gray-400 nav-item" id="nav-shipments-page"><span class="material-symbols-outlined">list_alt</span><span class="text-[10px] font-bold">চালান</span></a><a href="javascript:void(0)" onclick="navigateToTab('medicine-page', event)" class="flex flex-col items-center gap-1 text-gray-400 nav-item" id="nav-medicine-page"><span class="material-symbols-outlined">vaccines</span><span class="text-[10px] font-bold">ঔষধ</span></a><a href="javascript:void(0)" onclick="navigateToTab('settings-page', event)" class="flex flex-col items-center gap-1 text-gray-400 nav-item" id="nav-settings-page"><span class="material-symbols-outlined">settings</span><span class="text-[10px] font-bold">সেটিংস</span></a></div></nav>
     </main>
     
     <!-- 🎥 Video Modal Player -->
@@ -481,17 +481,39 @@
             });
         }
 
-        function navigate(p) { document.querySelectorAll('.page').forEach(e=>e.classList.remove('page-visible')); document.getElementById(p).classList.add('page-visible'); pageHistory.push(p); document.getElementById('add-shipment-button-container').classList.toggle('hidden', !['dashboard','shipments-page'].includes(p)); }
+        function navigate(p) { 
+            if (p === 'medicine-page' && !document.getElementById('medicine-page') && typeof injectMedicinePageIfReady === 'function') {
+                injectMedicinePageIfReady();
+            }
+            const targetEl = document.getElementById(p);
+            if (!targetEl) {
+                console.warn(`Target page "${p}" not found.`);
+                return;
+            }
+            document.querySelectorAll('.page').forEach(e=>e.classList.remove('page-visible')); 
+            targetEl.classList.add('page-visible'); 
+            pageHistory.push(p); 
+            const addShipBtn = document.getElementById('add-shipment-button-container');
+            if (addShipBtn) {
+                addShipBtn.classList.toggle('hidden', !['dashboard','shipments-page'].includes(p));
+            }
+        }
         function goBack() { if(pageHistory.length>1) pageHistory.pop(); navigate(pageHistory[pageHistory.length-1]); pageHistory.pop(); }
-        function navigateToTab(p) { 
+        function navigateToTab(p, evt) { 
+            if (evt && evt.preventDefault) evt.preventDefault();
             pageHistory=[p]; 
             navigate(p); 
             document.querySelectorAll('.nav-item').forEach(e=>{ 
                 e.classList.remove('text-teal-700', 'dark:text-teal-400'); 
                 if(e.id===`nav-${p}`) e.classList.add('text-teal-700', 'dark:text-teal-400'); 
             }); 
-            if (p === 'medicine-page' && typeof loadMedicineShipmentDropdowns === 'function') {
-                loadMedicineShipmentDropdowns();
+            if (p === 'medicine-page') {
+                if (typeof loadMedicineShipmentDropdowns === 'function') {
+                    loadMedicineShipmentDropdowns();
+                }
+                if (typeof renderScheduleTimeline === 'function') {
+                    renderScheduleTimeline();
+                }
             }
         }
         function switchTab(t) { currentEntryType=t; document.getElementById('expense-list-container').classList.toggle('hidden', t!=='expense'); document.getElementById('income-list-container').classList.toggle('hidden', t!=='income'); document.getElementById('expense-tab-button').className=`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${t==='expense'?'bg-white dark:bg-gray-600 shadow text-teal-700 dark:text-white':'text-gray-500 dark:text-gray-400'}`; document.getElementById('income-tab-button').className=`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${t==='income'?'bg-white dark:bg-gray-600 shadow text-teal-700 dark:text-white':'text-gray-500 dark:text-gray-400'}`; }
@@ -1009,12 +1031,12 @@
     <script src="notifications.js"></script>
     <script src="stock.js"></script>
     <script src="daily_report.js"></script>
-    <script src="medicine.js?v=27"></script>
+    <script src="medicine.js?v=28"></script>
     
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=27').then(reg => {
+                navigator.serviceWorker.register('sw.js?v=28').then(reg => {
                     reg.update();
                 }).catch(e => console.warn('SW registration warning:', e));
             });

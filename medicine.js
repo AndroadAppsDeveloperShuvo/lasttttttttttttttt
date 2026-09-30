@@ -598,10 +598,10 @@ if (typeof auth !== 'undefined') {
     });
 }
 
-// ৩. পেজ ইনজেক্ট করা
-document.addEventListener('DOMContentLoaded', () => {
+// ৩. পেজ ইনজেক্ট করা (Immediate & DOMContentLoaded উভয় স্টেটেই নিরাপদে কার্যকর)
+function injectMedicinePageIfReady() {
     const mainApp = document.getElementById('main-app');
-    if (mainApp) {
+    if (mainApp && !document.getElementById('medicine-page')) {
         mainApp.insertAdjacentHTML('beforeend', medicinePageHTML);
         
         // সেটআপ কাস্টম কনফার্ম বোতামের ইভেন্ট লিসেনার
@@ -622,7 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initBreedVideoLinks();
         updateVideoFabLabel();
 
-        // গ্লোবাল ক্লিক লিসেনার ড্রপডাউন বন্ধ করার জন্য (যাতে কোনো clashing না হয়)
+        // গ্লোবাল ক্লিক লিসেনার ড্রপডাউন বন্ধ করার জন্য
         document.addEventListener('click', (event) => {
             const dropdown = document.getElementById("med-menu-dropdown");
             const trigger = document.getElementById("med-menu-trigger");
@@ -632,8 +632,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+
+        // ইনিশিয়াল শিডিউল রেন্ডার
+        if (typeof renderScheduleTimeline === 'function') {
+            renderScheduleTimeline();
+        }
     }
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', injectMedicinePageIfReady);
+} else {
+    injectMedicinePageIfReady();
+}
 
 // ৪. মেইন লজিক
 let allShipmentsData = {};
@@ -671,7 +682,7 @@ function toggleMedicineMenu(event) {
 }
 
 // Handle Hamburger Menu selections
-function clickMedMenu(type) {
+async function clickMedMenu(type) {
     const dropdown = document.getElementById("med-menu-dropdown");
     if (dropdown) dropdown.classList.add("hidden"); // Close dropdown safely
     
